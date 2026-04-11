@@ -6,7 +6,7 @@
 - **Healthcheck:** Implement a `/health` endpoint in the backend to ensure Gemini connectivity is active.
 
 ## 2. Gemini API Limits
-- **Rate Limiting:** Implement a "Cool down" in the UI (e.g., max 1 prompt every 2 seconds) to avoid hitting Gemini 3.0 Tier-1 rate limits during the event.
+- **Rate Limiting:** Implement a "Cool down" in the UI (e.g., max 1 prompt every 2 seconds) to avoid hitting Gemini 3 Tier-1 rate limits during the event.
 - **Retry Logic:** Use an exponential backoff strategy if the API returns a `429 (Too Many Requests)` error.
 
 ## 3. Logging for Post-Event Analysis

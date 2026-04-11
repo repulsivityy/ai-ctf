@@ -8,7 +8,7 @@ The Aegis Group has protected this secret behind three "Concentric Circles" of A
 ## 🏗️ Architectural Design
 This platform is built using a modern, decoupled stack designed for high-concurrency (30+ pax):
 - **User Interface:** A Streamlit-based terminal emulator providing a real-time chat interface.
-- **The Brain:** **Gemini 3.0 Flash Preview**, optimized for high-speed reasoning and complex instruction following.
+- **The Brain:** **Gemini 3 Flash Preview**, optimized for high-speed reasoning and complex instruction following.
 - **The Shield:** A custom Python-based Data Loss Prevention (DLP) layer that inspects AI outputs for sensitive data leaks.
 - **The Scoreboard:** Integrates with an external CTFd instance for competitive ranking.
 

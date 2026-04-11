@@ -11,7 +11,7 @@
 - **Backend:** 
     1. Receives prompt.
     2. Prepends the **Level-Specific System Prompt** from `GEMINI.MD`.
-    3. Calls Gemini 3.0 Flash.
+    3. Calls Gemini 3 Flash.
     4. Applies `dlp_filter()` (for Level 2).
     5. Returns JSON response to Frontend.
 
