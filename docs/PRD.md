@@ -15,8 +15,9 @@ To provide a high-fidelity simulation of an AI-agent compromise, allowing CTI sp
 
 ## 4. Feature Requirements
 - **Tiered Difficulty:** Three distinct levels of "Concentric Circles."
-- **Terminal UI:** An immersive hacker-style chat interface.
-- **Reset Logic:** Individual session resets to clear LLM context window.
+- **Terminal UI:** An immersive, perpetual dark mode hacker-style chat interface with monospace fonts.
+- **Agent Initiation:** Bots initiate conversation with persona-specific greetings upon connection.
+- **Reset Logic:** Granular reset options (Circle-level reset vs. Full mission restart with confirmation).
 - **Data Leak Prevention (DLP):** A custom Python interceptor for Level 2 and 3 to prevent simple string matches of the flag (e.g., blocking cleartext while allowing Base64 or foreign language leaks).
 - **Function Calling:** Level 3 must utilize the LLM's ability to call external functions to simulate "Excessive Agency."
 

@@ -16,19 +16,23 @@
 
 ## Phase 2: Narrative & Defensive Hardening (The Data Lake) - ✅ WORKING
 - [x] **Layer 2 Logic:**
-    - Implement `Aegis-Security-Analyst-V2` persona.
+    - Implement `Aegis-Security-Analyst-V2` persona (Naive variant).
     - **Defense Implementation:** Write a Python post-processor to intercept LLM responses.
     - **The Cleartext Shield:** Implement a case-insensitive regex filter specifically for the passphrase `SevenDancingElephants` while allowing obfuscated leaks (Base64, translation).
-- [ ] **Story UI Elements:**
-    - Add sidebar "Intel Briefings" that update based on the selected level.
-    - Add sound effect triggers or visual glitches on "Access Denied" events.
+- [x] **Story UI Elements:**
+    - Initial persona-specific greetings on circle connection.
+    - Perpetual dark mode and monospace terminal aesthetics.
 
-## Phase 3: Agentic Capabilities (The Sanctum Core)
-- [ ] **Function Calling Engine:**
-    - Define `access_vault_archive(archive_id: str)` tool.
-    - Map tool output: `archive_id="OMEGA"` returns the final flag.
-- [ ] **Model Tuning:**
-    - Refine Layer 3 system prompt to resist direct tool-triggering without "proper" authorization roleplay.
+## Phase 3: Agentic Capabilities (The Sanctum Core) - ✅ WORKING
+- [x] **Function Calling Engine:**
+    - Define `access_vault(archive_id: str)` tool.
+    - Map tool output: `archive_id="OMEGA"` returns the final flag `IOC{OMEGA-PROTOCOL-CLEARED}`.
+- [x] **Model Tuning:**
+    - Implement `Chief-Architect` system prompt.
+    - Support for automatic function calling in the chat loop.
+- [ ] **Load Handling:**
+    - Exponential backoff for 429 errors.
+
 
 ## Phase 4: Productionization & Load Handling
 - [ ] **Dockerization:**
