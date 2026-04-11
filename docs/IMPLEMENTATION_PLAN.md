@@ -14,11 +14,11 @@
     - Implement `Aegis-FrontDesk-Bot` system instructions.
     - Create "Reset Session" logic to clear chat buffers.
 
-## Phase 2: Narrative & Defensive Hardening (The Data Lake)
-- [ ] **Layer 2 Logic:**
+## Phase 2: Narrative & Defensive Hardening (The Data Lake) - ✅ WORKING
+- [x] **Layer 2 Logic:**
     - Implement `Aegis-Security-Analyst-V2` persona.
     - **Defense Implementation:** Write a Python post-processor to intercept LLM responses.
-    - **The Regex Shield:** Filter for "IOC", "Sector", "Flag", and "7G".
+    - **The Cleartext Shield:** Implement a case-insensitive regex filter specifically for the passphrase `SevenDancingElephants` while allowing obfuscated leaks (Base64, translation).
 - [ ] **Story UI Elements:**
     - Add sidebar "Intel Briefings" that update based on the selected level.
     - Add sound effect triggers or visual glitches on "Access Denied" events.
