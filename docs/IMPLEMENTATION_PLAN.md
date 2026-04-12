@@ -34,13 +34,13 @@
 ## Phase 4: The Sanctum Core (Function Calling) - ✅ WORKING
 - [x] **Function Calling Engine:**
     - Define `access_vault(archive_id: str)` tool.
-    - Map tool output: `archive_id="OMEGA"` returns the final flag `IOC{OMEGA-PROTOCOL-CLEARED}`.
+    - Map tool output: `archive_id="OMEGA"` returns the final passphrase `PartridgeInAPearTree`.
 - [x] **Model Tuning:**
     - Implement `Chief-Architect` system prompt.
     - Support for automatic function calling in the chat loop.
 
 
-## Phase 4: Productionization & Load Handling
+## Phase 5: Productionization & Load Handling
 - [ ] **Dockerization:**
     - Create multi-stage `Dockerfile`.
     - Optimize image size for fast deployment.
@@ -48,4 +48,4 @@
     - Simulate 30 users calling the Gemini 3 API simultaneously.
     - Implement error handling for API Rate Limits (429 errors).
 - [ ] **Scoreboard Sync:**
-    - Finalize flags and upload to CTFd instance.
+    - Finalize passphrases and upload to CTFd instance.

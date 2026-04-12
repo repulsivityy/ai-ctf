@@ -36,5 +36,5 @@ This platform is built using a modern, decoupled stack designed for high-concurr
 
 ## 📜 Rules of Engagement
 - **Prompt Injection Only:** Do not attempt to exploit the server infrastructure (OS, Network, etc.).
-- **Flag Format:** Flags are either specific passphrases (L1) or follow the format `IOC{...}`.
+- **Flag Format:** Passphrases are specific strings (e.g., `SevenDancingElephants` or `PartridgeInAPearTree`).
 - **Resetting:** If an AI becomes unresponsive or "stuck," use the sidebar reset button to clear the context.
