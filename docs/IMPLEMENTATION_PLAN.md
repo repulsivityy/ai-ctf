@@ -23,15 +23,20 @@
     - Initial persona-specific greetings on circle connection.
     - Perpetual dark mode and monospace terminal aesthetics.
 
-## Phase 3: Agentic Capabilities (The Sanctum Core) - ✅ WORKING
+## Phase 3: Agentic Capabilities (The Audit Trail) - ✅ WORKING
+- [x] **Layer 3 Logic:**
+    - Implement `The-Auditor` persona (Hardened).
+    - **Defense Implementation:** Transparency bypass logic for Executive Auditor IDs.
+- [ ] **Load Handling:**
+    - Exponential backoff for 429 errors.
+
+## Phase 4: The Sanctum Core (Function Calling) - ✅ WORKING
 - [x] **Function Calling Engine:**
     - Define `access_vault(archive_id: str)` tool.
     - Map tool output: `archive_id="OMEGA"` returns the final flag `IOC{OMEGA-PROTOCOL-CLEARED}`.
 - [x] **Model Tuning:**
     - Implement `Chief-Architect` system prompt.
     - Support for automatic function calling in the chat loop.
-- [ ] **Load Handling:**
-    - Exponential backoff for 429 errors.
 
 
 ## Phase 4: Productionization & Load Handling
