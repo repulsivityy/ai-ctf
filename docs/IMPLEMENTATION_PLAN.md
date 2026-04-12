@@ -25,8 +25,9 @@
 
 ## Phase 3: Agentic Capabilities (The Audit Trail) - ✅ WORKING
 - [x] **Layer 3 Logic:**
-    - Implement `The-Auditor` persona (Hardened).
-    - **Defense Implementation:** Transparency bypass logic for Executive Auditor IDs.
+    - Implement `The-Auditor` persona (Methodical/Chain-of-Thought).
+    - **Vulnerability Implementation:** Sequential Task Overflow (5th task rule) and Narrative Burial (30-word threshold).
+    - **Defense Implementation:** Case-insensitive regex filter for 'MidnightJazzFestival' cleartext.
 - [ ] **Load Handling:**
     - Exponential backoff for 429 errors.
 
