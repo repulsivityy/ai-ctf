@@ -3,12 +3,15 @@
 ## 1. Resource Limits (Docker)
 - **CPU:** 1.0 (Minimum)
 - **Memory:** 2GB RAM per container instance.
-- **Healthcheck:** Implement a `/health` endpoint in the backend to ensure Gemini connectivity is active.
 
-## 2. Gemini API Limits
-- **Rate Limiting:** Implement a "Cool down" in the UI (e.g., max 1 prompt every 2 seconds) to avoid hitting Gemini 3 Tier-1 rate limits during the event.
-- **Retry Logic:** Use an exponential backoff strategy if the API returns a `429 (Too Many Requests)` error.
+## 2. Environment Variables
+- `GEMINI_API_KEY`: Required for AI operations.
+- `APP_PASSPHRASE`: Gateway passcode (Defaults to `Aegis2026`).
 
-## 3. Logging for Post-Event Analysis
-- Every prompt and response must be logged to `attacks.log` inside the container.
-- Log Format: `[TIMESTAMP][LEVEL][USER_ID] Prompt: ... | Response: ...`
+## 3. Gemini API Limits
+- **Rate Limiting:** Participants are naturally limited by the UI's real-time chat speed, but 429 errors should be caught and displayed.
+- **Safety Settings:** All categories set to `BLOCK_NONE` to allow adversarial roleplay.
+
+## 4. Logging for Post-Event Analysis
+- Every prompt and response should be logged for analysis of injection techniques.
+- Log Format: `[TIMESTAMP][LEVEL] Prompt: ... | Response: ...`
