@@ -217,7 +217,7 @@ if not history:
     with st.spinner(f"Establishing connection to {bot_names[current_lvl]}..."):
         try:
             model = genai.GenerativeModel(
-                model_name="gemini-3-flash-preview",
+                model_name="gemini-3.5-flash",
                 system_instruction=SYSTEM_PROMPTS[current_lvl],
                 safety_settings=safety_settings
             )
