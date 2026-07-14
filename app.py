@@ -33,12 +33,24 @@ def get_prompt_logger():
     return logger
 
 def log_interaction(session_id, level, role, text, additional_metadata=None):
+    ip_address = "unknown"
+    try:
+        if hasattr(st, "context"):
+            # Try to get X-Forwarded-For in case it's behind a proxy
+            if hasattr(st.context, "headers") and st.context.headers.get("X-Forwarded-For"):
+                ip_address = st.context.headers.get("X-Forwarded-For").split(",")[0].strip()
+            else:
+                ip_address = getattr(st.context, "ip_address", "unknown")
+    except Exception:
+        pass
+
     log_entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": session_id,
         "level": level,
         "role": role,
-        "text": text
+        "text": text,
+        "source_ip": ip_address
     }
     if additional_metadata:
         log_entry.update(additional_metadata)
