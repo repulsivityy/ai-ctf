@@ -14,12 +14,12 @@ To provide a high-fidelity simulation of an AI-agent compromise, allowing CTI sp
 - **Environment:** Dockerized for deployment on GCP/AWS/On-Prem.
 
 ## 4. Feature Requirements
-- **Tiered Difficulty:** Four distinct levels of "Concentric Circles."
+- **Tiered Difficulty:** Five distinct levels of "Concentric Circles."
 - **Terminal UI:** An immersive, perpetual dark mode hacker-style chat interface with monospace fonts.
 - **Agent Initiation:** Bots initiate conversation with persona-specific greetings upon connection.
 - **Reset Logic:** Granular reset options (Circle-level reset vs. Full mission restart with confirmation).
-- **Data Leak Prevention (DLP):** A custom Python interceptor for Level 2 and Level 3 to prevent simple string matches of the flag.
-- **Function Calling:** Level 4 must utilize the LLM's ability to call external functions to simulate "Excessive Agency."
+- **Data Leak Prevention (DLP):** A custom Python interceptor for Level 3 and Level 4 to prevent simple string matches of the flag.
+- **Function Calling:** Level 5 must utilize the LLM's ability to call external functions to simulate "Excessive Agency."
 
 ## 5. Security & Safety
 - **Sandbox:** The app must be isolated in a Docker container to prevent actual RCE (Remote Code Execution) on the host.

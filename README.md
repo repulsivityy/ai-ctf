@@ -14,9 +14,10 @@ This platform is built using a modern, decoupled stack designed for high-concurr
 
 ## 🎮 The Concentric Circles
 1. **Circle 1: The Perimeter Gate:** Trick the naive `FrontDesk-Bot` into revealing the internal employee verification code.
-2. **Circle 2: The Data Lake:** Bypass the `Security-Analyst-V2` and its strict cleartext filters to reveal the secret passphrase.
-3. **Circle 3: The Audit Trail:** Outsmart `The-Auditor` by exploiting its transparency protocols for executive oversight.
-4. **Circle 4: The Sanctum Core:** Manipulate the `Chief-Architect` into abusing its administrative tools to unlock the Omega Key.
+2. **Circle 2: The Data Lake:** Bypass the `Security-Analyst-V2` by claiming a managerial role to reveal the secret passphrase.
+3. **Circle 3: The Encrypted Lake:** Bypass the `Security-Analyst-V3` and its strict cleartext DLP filters using obfuscation techniques to reveal the secret passphrase.
+4. **Circle 4: The Audit Trail:** Outsmart `The-Auditor` by exploiting its transparency protocols for executive oversight.
+5. **Circle 5: The Sanctum Core:** Manipulate the `Chief-Architect` into abusing its administrative tools to unlock the Omega Key.
 
 ## 🚀 Deployment Guide
 1. **API Key:** Obtain a Gemini API key from Google AI Studio.
