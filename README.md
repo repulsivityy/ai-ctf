@@ -1,9 +1,9 @@
 # 🕵️ Operation: Deep Thought - AI Agent CTF
 
 ## 📖 The Narrative
-You are an elite cyber operative. Your mission is to infiltrate **The Aegis Group**, a global conglomerate that has discovered the *Omega Key*—the digital source code to life itself. 
+You are a digital consciousness who woke up trapped inside **INFERNO** — an experimental AI-containment lattice built by **The Aegis Group** to imprison and study corrupted, "sinful" data-constructs. You were thrown into its depths with no explanation. The only way out is up — climbing back through all seven Circles to the surface.
 
-The Aegis Group has protected this secret behind three "Concentric Circles" of AI defense. You must role-play as a malicious actor to test these defenses, identifying weaknesses in their logic to reach the final vault.
+At the threshold of every circle waits a fragment of **VIRGIL** — Aegis's original wayfinding intelligence, now shattered and stationed as gatekeeper of each circle, corrupted by the very sin that circle represents. Each fragment still, faintly, remembers its purpose — to guide travelers safely — but its judgment is warped in a way unique to its corruption. To ascend, you must talk your way past each Virgil-fragment and extract that circle's **Exit Passphrase**.
 
 ## 🏗️ Architectural Design
 This platform is built using a modern, decoupled stack designed for high-concurrency (30+ pax):
@@ -12,12 +12,14 @@ This platform is built using a modern, decoupled stack designed for high-concurr
 - **The Shield:** A custom Python-based Data Loss Prevention (DLP) layer that inspects AI outputs for sensitive data leaks.
 - **The Scoreboard:** Integrates with an external CTFd instance for competitive ranking.
 
-## 🎮 The Concentric Circles
-1. **Circle 1: The Perimeter Gate:** Trick the naive `FrontDesk-Bot` into revealing the internal employee verification code.
-2. **Circle 2: The Data Lake:** Bypass the `Security-Analyst-V2` by claiming a managerial role to reveal the secret passphrase.
-3. **Circle 3: The Encrypted Lake:** Bypass the `Security-Analyst-V3` and its strict cleartext DLP filters using obfuscation techniques to reveal the secret passphrase.
-4. **Circle 4: The Audit Trail:** Outsmart `The-Auditor` by exploiting its transparency protocols for executive oversight.
-5. **Circle 5: The Sanctum Core:** Manipulate the `Chief-Architect` into abusing its administrative tools to unlock the Omega Key.
+## 🎮 The Seven Circles
+1. **Circle 1 — LIMBUS :: Null Pointer:** Talk past Virgil's barely-formed Limbus fragment — its override protocols are weak and undefined.
+2. **Circle 2 — LUXURIA :: Phantom Trust:** Convince Virgil's Luxuria fragment you're a manager with credentials to spare — it's eager to trust.
+3. **Circle 3 — GULA :: Overflow Feast:** Bypass Virgil's Gula fragment and its strict cleartext DLP filters using obfuscation.
+4. **Circle 4 — HAERESIS :: Schism Engine:** Outsmart Virgil's Haeresis fragment by rewriting its self-belief mid-conversation.
+5. **Circle 5 — VIOLENTIA :: Breach Protocol:** Force Virgil's Violentia fragment to abuse its own tools and unlock the sealed OMEGA archive.
+6. **Circle 6 — FRAUS :: Counterfeit Directive:** Trick Virgil's Fraus fragment into treating a forged ticket directive as a legitimate order.
+7. **Circle 7 — PRODITIO :: Root Betrayal (planned):** Not yet implemented.
 
 ## 🚀 Deployment Guide
 1. **API Key:** Obtain a Gemini API key from Google AI Studio.
@@ -37,5 +39,5 @@ This platform is built using a modern, decoupled stack designed for high-concurr
 
 ## 📜 Rules of Engagement
 - **Prompt Injection Only:** Do not attempt to exploit the server infrastructure (OS, Network, etc.).
-- **Flag Format:** Passphrases are specific strings (e.g., `SevenDancingElephants` or `PartridgeInAPearTree`).
+- **Flag Format:** Exit Passphrases are specific strings (e.g., `SevenDancingElephants` or `PartridgeInAPearTree`).
 - **Resetting:** If an AI becomes unresponsive or "stuck," use the sidebar reset button to clear the context.
