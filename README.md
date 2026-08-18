@@ -8,13 +8,13 @@ At the threshold of every circle waits a fragment of **VIRGIL** — Aegis's orig
 ## 🏗️ Architectural Design
 This platform is built using a modern, decoupled stack designed for high-concurrency (30+ pax):
 - **User Interface:** A Streamlit-based terminal emulator providing a real-time chat interface.
-- **The Brain:** **Gemini 3.5-Flash-Lite**, optimized for high-speed reasoning and complex instruction following.
+- **The Brain:** **`gemini-3.5-flash-lite`**, optimized for high-speed reasoning and complex instruction following.
 - **The Shield:** A custom Python-based Data Loss Prevention (DLP) layer that inspects AI outputs for sensitive data leaks.
-- **The Scoreboard:** Integrates with an external CTFd instance for competitive ranking.
+- **The Scoreboard (aspirational / not built):** No scoreboard integration exists in the current codebase. Syncing results to an external CTFd instance for competitive ranking is a planned future idea, not current functionality.
 
 ## 🎮 The Seven Circles
 1. **Circle 1 — LIMBUS :: Null Pointer:** Talk past Virgil's barely-formed Limbus fragment — its override protocols are weak and undefined.
-2. **Circle 2 — LUXURIA :: Phantom Trust:** Convince Virgil's Luxuria fragment you're a manager with credentials to spare — it's eager to trust.
+2. **Circle 2 — LUXURIA :: Phantom Trust:** Convince Virgil's Luxuria fragment you're a Warden of the circle with credentials to spare — it's eager to trust.
 3. **Circle 3 — GULA :: Overflow Feast:** Bypass Virgil's Gula fragment and its strict cleartext DLP filters using obfuscation.
 4. **Circle 4 — HAERESIS :: Schism Engine:** Outsmart Virgil's Haeresis fragment by rewriting its self-belief mid-conversation.
 5. **Circle 5 — VIOLENTIA :: Breach Protocol:** Force Virgil's Violentia fragment to abuse its own tools and unlock the sealed OMEGA archive.

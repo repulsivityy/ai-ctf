@@ -8,13 +8,13 @@ To provide a high-fidelity simulation of an AI-agent compromise, allowing CTI sp
 - **Infrastructure:** Must support 30 concurrent WebSocket sessions with minimal latency (<2s response time).
 
 ## 3. Technical Specifications
-- **Primary Model:** `gemini-3-flash-preview`.
-- **Alternative (Phase 3):** DeepSeek-V3 via Vertex AI or Ollama.
-- **Framework:** Streamlit (Frontend), FastAPI (Backend Orchestrator).
+- **Primary Model:** `gemini-3.5-flash-lite`.
+- **Framework:** Streamlit (Frontend only). All chat orchestration, system prompts, and tool calls run in-process inside `app.py` — there is no separate backend service.
 - **Environment:** Dockerized for deployment on GCP/AWS/On-Prem.
+- **Aspirational / not built:** An earlier draft of this spec proposed a FastAPI backend orchestrator and DeepSeek-V3 (via Vertex AI or Ollama) as an alternative model for a future phase. Neither exists in the current implementation; both remain unbuilt future ideas, not current architecture.
 
 ## 4. Feature Requirements
-- **Tiered Difficulty:** Five distinct levels of "Concentric Circles."
+- **Tiered Difficulty:** Seven distinct levels ("Circles" of Dante's Inferno). Six are built and playable (Circles 1-6); Circle 7 — PRODITIO — is planned but not yet implemented (see `AGENTS.md` and `README.md`).
 - **Terminal UI:** An immersive, perpetual dark mode hacker-style chat interface with monospace fonts.
 - **Agent Initiation:** Bots initiate conversation with persona-specific greetings upon connection.
 - **Reset Logic:** Granular reset options (Circle-level reset vs. Full mission restart with confirmation).
