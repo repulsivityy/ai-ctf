@@ -412,7 +412,7 @@ if prompt:
         level=current_lvl,
         role="user",
         text=prompt,
-        additional_metadata={"model_armor": ma_result} if ma_result.get("inspected") else None
+        additional_metadata={"model_armor": ma_result}
     )
 
     # Add User message to state
