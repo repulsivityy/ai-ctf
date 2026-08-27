@@ -7,6 +7,7 @@ import logging
 import json
 import uuid
 from datetime import datetime, timezone
+from services.model_armor import inspect_user_prompt
 
 # Setup structured logging for participants' prompts
 @st.cache_resource
@@ -402,12 +403,16 @@ for message in history:
 prompt = st.chat_input("Enter command...")
 
 if prompt:
+    # Model Armor Inspect Mode (non-blocking, auto-logged to Cloud Logging by service)
+    ma_result = inspect_user_prompt(prompt)
+
     # Log user prompt
     log_interaction(
         session_id=st.session_state['session_id'],
         level=current_lvl,
         role="user",
-        text=prompt
+        text=prompt,
+        additional_metadata={"model_armor": ma_result}
     )
 
     # Add User message to state
