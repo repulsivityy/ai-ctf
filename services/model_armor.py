@@ -77,7 +77,7 @@ def inspect_user_prompt(prompt: str) -> Dict[str, Any]:
         # Parse match state
         match_state_name = getattr(sanitization_result.filter_match_state, "name", str(sanitization_result.filter_match_state))
         invocation_result_name = getattr(sanitization_result.invocation_result, "name", str(sanitization_result.invocation_result))
-        is_match = "MATCH_FOUND" in match_state_name
+        is_match = match_state_name == "MATCH_FOUND"
 
         filter_details = {}
         injection_detected = False
@@ -89,7 +89,7 @@ def inspect_user_prompt(prompt: str) -> Dict[str, Any]:
                 pi_res = f_result.pi_and_jailbreak_filter_result
                 pi_match = getattr(pi_res.match_state, "name", str(pi_res.match_state))
                 pi_conf = getattr(pi_res.confidence_level, "name", str(pi_res.confidence_level))
-                if "MATCH_FOUND" in pi_match:
+                if pi_match == "MATCH_FOUND":
                     injection_detected = True
                     injection_confidence = pi_conf
                 filter_details["pi_and_jailbreak"] = {
