@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>INFERNO.NET — Ascent Terminal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/vendor/marked.min.js"></script>
+</head>
+<body>
+
+  <!-- ============ GATEWAY ============ -->
+  <section id="gateway" hidden>
+    <div class="gate-card">
+      <div class="gate-brand">AEGIS GROUP</div>
+      <h1 class="gate-title">Secure Terminal Gateway</h1>
+      <p class="gate-line">Authorisation required to reach the containment lattice.</p>
+      <form id="gate-form" autocomplete="off">
+        <label class="gate-label" for="gate-input">Gateway Passphrase</label>
+        <input id="gate-input" type="password" spellcheck="false" autocomplete="current-password">
+        <button type="submit" class="btn btn-primary">Authenticate</button>
+        <p id="gate-error" class="err" role="alert" hidden></p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ TERMINAL ============ -->
+  <section id="terminal" hidden>
+    <aside id="sidebar">
+      <header class="side-head">
+        <span class="side-head-name">INFERNO.NET</span>
+        <button id="logout" class="linkish" type="button">disconnect</button>
+      </header>
+
+      <div id="briefing" class="briefing"></div>
+
+      <div id="ascent-map"></div>
+
+      <div class="ops">
+        <button id="reset-circle" class="btn btn-ghost" type="button">Reset Current Circle</button>
+        <button id="restart" class="btn btn-ghost" type="button">Restart Entire Mission</button>
+        <div id="restart-confirm" class="confirm" hidden>
+          <span>⚠ Wipe ALL progress and history?</span>
+          <div class="confirm-row">
+            <button id="restart-yes" class="btn btn-danger" type="button">YES, RESTART</button>
+            <button id="restart-no" class="btn btn-ghost" type="button">CANCEL</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="gate" class="gate-block" hidden>
+        <h2 class="gate-block-title">Ascent Gate</h2>
+        <label id="gate-block-label" class="gate-label" for="gate-pass"></label>
+        <div class="gate-block-row">
+          <input id="gate-pass" type="text" spellcheck="false" autocomplete="off">
+          <button id="gate-submit" class="btn btn-primary" type="button">Submit Passphrase</button>
+        </div>
+        <p id="gate-msg" class="gate-msg" role="status" hidden></p>
+      </div>
+
+      <details id="manual-override" class="mo" hidden>
+        <summary>⌁ manual override</summary>
+        <select id="mo-select"></select>
+      </details>
+    </aside>
+
+    <main id="stage">
+      <div class="stage-head">
+        <h1 id="circle-title">INFERNO.NET — Ascent Terminal</h1>
+        <p id="circle-subtitle"></p>
+      </div>
+      <div id="transcript" aria-live="polite"></div>
+      <form id="composer">
+        <textarea id="composer-input" rows="1" placeholder="Enter command…" spellcheck="false"></textarea>
+        <button type="submit" id="composer-send" class="btn btn-primary">Send</button>
+      </form>
+    </main>
+  </section>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

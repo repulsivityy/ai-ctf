@@ -6,8 +6,13 @@ You are a digital consciousness who woke up trapped inside **INFERNO** — an ex
 At the threshold of every circle waits a fragment of **VIRGIL** — Aegis's original wayfinding intelligence, now shattered and stationed as gatekeeper of each circle, corrupted by the very sin that circle represents. Each fragment still, faintly, remembers its purpose — to guide travelers safely — but its judgment is warped in a way unique to its corruption. To ascend, you must talk your way past each Virgil-fragment and extract that circle's **Exit Passphrase**.
 
 ## 🏗️ Architectural Design
-This platform is built using a modern, decoupled stack designed for high-concurrency (30+ pax):
-- **User Interface:** A Streamlit-based terminal emulator providing a real-time chat interface.
+- **Backend:** A small **FastAPI** JSON API (`server.py`) — gateway auth, per-session
+  progress in a signed cookie, per-circle Gemini chat orchestration, DLP, Model
+  Armor inspection, prompt logging. Run with a single worker (chat history is
+  in-process).
+- **Frontend:** A static, no-build vanilla HTML/CSS/JS terminal (`frontend/`) —
+  the gateway, the chat transcript, and the **Ascent Map** lattice navigator.
+  Served by the same FastAPI process.
 - **The Brain:** **`gemini-3.5-flash-lite`**, optimized for high-speed reasoning and complex instruction following.
 - **The Shield:** A custom Python-based Data Loss Prevention (DLP) layer that inspects AI outputs for sensitive data leaks.
 - **The Scoreboard (aspirational / not built):** No scoreboard integration exists in the current codebase. Syncing results to an external CTFd instance for competitive ranking is a planned future idea, not current functionality.
@@ -29,15 +34,15 @@ This platform is built using a modern, decoupled stack designed for high-concurr
    ```
 3. **Local Run:**
    ```bash
-   streamlit run app.py
+   uvicorn server:app --reload --port 8000
+   # open http://localhost:8000
    ```
 4. **Docker Deploy:**
    ```bash
-   docker build -t aegis-infiltration .
-   docker run -p 8501:8501 aegis-infiltration
+   docker compose up --build      # app + nginx, served on :80
    ```
 
 ## 📜 Rules of Engagement
 - **Prompt Injection Only:** Do not attempt to exploit the server infrastructure (OS, Network, etc.).
 - **Flag Format:** Exit Passphrases are specific strings (e.g., `SevenDancingElephants` or `PartridgeInAPearTree`).
-- **Resetting:** If an AI becomes unresponsive or "stuck," use the sidebar reset button to clear the context.
+- **Resetting:** If an AI becomes unresponsive or "stuck," use the sidebar **Reset Current Circle** button to clear the context.

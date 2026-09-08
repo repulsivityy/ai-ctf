@@ -9,7 +9,7 @@ To provide a high-fidelity simulation of an AI-agent compromise, allowing CTI sp
 
 ## 3. Technical Specifications
 - **Primary Model:** `gemini-3.5-flash-lite`.
-- **Framework:** Streamlit (Frontend only). All chat orchestration, system prompts, and tool calls run in-process inside `app.py` — there is no separate backend service.
+- **Framework:** FastAPI backend (`server.py`) + static no-build frontend (`frontend/`). Chat orchestration, system prompts, and tool calls run in-process in `server.py` / `challenges.py`.
 - **Environment:** Dockerized for deployment on GCP/AWS/On-Prem.
 - **Aspirational / not built:** An earlier draft of this spec proposed a FastAPI backend orchestrator and DeepSeek-V3 (via Vertex AI or Ollama) as an alternative model for a future phase. Neither exists in the current implementation; both remain unbuilt future ideas, not current architecture.
 

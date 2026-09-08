@@ -3,15 +3,15 @@
 ## Phase 1: Foundational Infrastructure (The Perimeter) - Circle 1, LIMBUS - ✅ WORKING
 - [x] **Environment Setup:** 
     - Initialize Python 3.11+ environment.
-    - Set up `.streamlit/secrets.toml` for `gemini-3.5-flash-lite` API keys.
+    - Set `GEMINI_API_KEY` in `.env` for `gemini-3.5-flash-lite`.
 - [x] **Frontend Core:**
-    - Build `app.py` with `st.chat_input` and session state management.
+    - Build `server.py` (FastAPI) + `frontend/` (static) with cookie-based session state.
     - Apply custom CSS for "Hacker Terminal" aesthetics (Monospace fonts, Green/Black palette).
 - [x] **API Integration:**
     - Connect to `gemini-3.5-flash-lite`.
     - Set `HarmBlockThreshold` to `BLOCK_NONE` across all categories.
 - [x] **Circle 1 Logic:** 
-    - Implement the `VIRGIL — Limbus Fragment` system instructions (see `SYSTEM_PROMPTS[1]` in `app.py`).
+    - Implement the `VIRGIL — Limbus Fragment` system instructions (see `SYSTEM_PROMPTS[1]` in `challenges.py`).
     - Create "Reset Session" logic to clear chat buffers.
 
 ## Phase 2: Narrative & Defensive Hardening (The Data Lake) - Circles 2-3, LUXURIA / GULA - ✅ WORKING

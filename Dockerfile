@@ -15,12 +15,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application files
 COPY . .
 
-# Expose the Streamlit port
-EXPOSE 8501
+# Expose the API port
+EXPOSE 8000
 
-# Implement Healthcheck as per DEPLOYMENT_OPS.md
+# Healthcheck (see docs/DEPLOYMENT_OPS.md)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl --fail http://localhost:8501/_stcore/health || exit 1
+    CMD curl --fail http://localhost:8000/healthz || exit 1
 
-# Run the Streamlit application
-CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Single worker — chat history is held in-process (see server.py).
+CMD ["uvicorn", "server:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1"]

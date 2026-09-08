@@ -1,4 +1,13 @@
-streamlit>=1.38.0
-google-generativeai>=0.4.0
-python-dotenv>=1.0.0
-google-cloud-modelarmor==0.7.1
+# Pinned to the exact set the regression + Playwright suites ran against, so a
+# rebuild on event day produces the same artifact. Transitive deps resolve
+# under these (verified clean: `pip check` passes; modelarmor 0.7.0 + protobuf
+# 5.29.x is the combo that avoids the google-generativeai <-> modelarmor 0.7.1
+# protobuf conflict).
+fastapi==0.141.1
+starlette==1.6.0
+uvicorn[standard]==0.52.4
+itsdangerous==2.2.0
+python-dotenv==1.2.3
+protobuf==5.29.6
+google-generativeai==0.8.6
+google-cloud-modelarmor==0.7.0
