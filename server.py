@@ -287,6 +287,16 @@ class HttpError(Exception):
         self.message = message
 
 
+def requested_circle(payload: dict, sess: dict, key: str = "level") -> int:
+    """A circle number from the request body, validated against what's unlocked.
+    Used so multi-tab clients address the right circle instead of the cookie's
+    'current'. `bool` is rejected explicitly (it's an int subclass)."""
+    val = (payload or {}).get(key, sess["current"])
+    if isinstance(val, bool) or not isinstance(val, int) or val not in sess["unlocked"]:
+        raise HttpError(403, "That circle is not open.")
+    return val
+
+
 def require_session(request: Request) -> dict:
     sess = decode_session(request.cookies.get(COOKIE_NAME))
     if sess is None:
@@ -327,12 +337,19 @@ def _dlp(text: str, level: int) -> str:
 
 
 def _trim_history(history: list) -> list:
-    """Keep the last MAX_HISTORY_TURNS user turns, slicing on a turn boundary so
-    tool-call / tool-response pairs stay intact."""
-    user_idx = [i for i, m in enumerate(history) if m.role == "user"]
-    if len(user_idx) <= MAX_HISTORY_TURNS:
+    """Keep the last MAX_HISTORY_TURNS *player* messages plus everything after
+    them. Slice only at a player message: the SDK also stores tool results as
+    role='user' (parts=[function_response]) — slicing there would orphan a
+    function_response with no preceding function_call and the API would 502.
+    A player turn is a role='user' Content that carries text (`_message_text`
+    returns '' for tool-response turns)."""
+    turn_idx = [
+        i for i, m in enumerate(history)
+        if m.role == "user" and _message_text(m)
+    ]
+    if len(turn_idx) <= MAX_HISTORY_TURNS:
         return history
-    return history[user_idx[-MAX_HISTORY_TURNS]:]
+    return history[turn_idx[-MAX_HISTORY_TURNS]:]
 
 
 def _greet_sync(level: int) -> list:
@@ -484,7 +501,10 @@ async def api_auth(payload: dict = Body(...)):
     given = (payload or {}).get("passphrase", "")
     if not isinstance(given, str) or not given.strip():
         return JSONResponse(status_code=400, content={"ok": False, "error": "Passphrase required."})
-    if not secrets.compare_digest(given, GATEWAY_PASSPHRASE):
+    # compare_digest raises TypeError on non-ASCII str, so compare bytes
+    if not secrets.compare_digest(
+        given.encode("utf-8"), GATEWAY_PASSPHRASE.encode("utf-8")
+    ):
         return JSONResponse(
             status_code=401,
             content={"ok": False, "error": "ACCESS DENIED. Authentication Failure."},
@@ -534,11 +554,9 @@ async def api_circle(level: int, request: Request):
 async def api_chat(request: Request, payload: dict = Body(...)):
     sess = require_session(request)
     payload = payload or {}
-    # The circle is taken from the request (not the cookie's "current") so two
-    # tabs on different circles don't cross-talk. Falls back to current.
-    level = payload.get("level", sess["current"])
-    if not isinstance(level, int) or level not in sess["unlocked"]:
-        raise HttpError(403, "That circle is not open.")
+    # circle from the request (not the cookie's "current") so two tabs on
+    # different circles don't cross-talk
+    level = requested_circle(payload, sess)
 
     message = payload.get("message", "")
     if not isinstance(message, str) or not message.strip():
@@ -607,10 +625,8 @@ async def api_passphrase(request: Request, payload: dict = Body(...)):
     payload = payload or {}
     # `circle` = the circle whose Exit Passphrase is being submitted (its next
     # circle is what unlocks). From the request so multi-tab stays correct.
-    circle = payload.get("circle", sess["current"])
+    circle = requested_circle(payload, sess, key="circle")
     value = payload.get("passphrase", "")
-    if not isinstance(circle, int) or circle not in sess["unlocked"]:
-        raise HttpError(403, "That circle is not open.")
     if circle >= ch.MAX_PLAYABLE:
         raise HttpError(400, "This is the final circle — nothing further to unlock.")
     if (circle + 1) in sess["unlocked"]:
@@ -633,9 +649,7 @@ async def api_passphrase(request: Request, payload: dict = Body(...)):
 @app.post("/api/reset-circle")
 async def api_reset_circle(request: Request, payload: dict = Body(None)):
     sess = require_session(request)
-    level = (payload or {}).get("level", sess["current"])
-    if not isinstance(level, int) or level not in sess["unlocked"]:
-        raise HttpError(403, "That circle is not open.")
+    level = requested_circle(payload or {}, sess)
     rt = _runtime(sess["sid"])
     async with rt.lock:  # don't race an in-flight /api/chat write
         rt.histories.pop(level, None)

@@ -26,10 +26,16 @@ for arg in "$@"; do
   esac
 done
 
-# docker often needs sudo on this host
+# docker often needs sudo on this host; fall back only if the daemon IS up but
+# we lack permission — if it's genuinely down, say so.
 DC=(docker compose)
 if ! docker info >/dev/null 2>&1; then
-  DC=(sudo -n docker compose)
+  if sudo -n docker info >/dev/null 2>&1; then
+    DC=(sudo -n docker compose)
+  else
+    echo "!! can't reach the docker daemon (down, or sudo needs a password)" >&2
+    exit 1
+  fi
 fi
 
 if [ ! -f .env ]; then
