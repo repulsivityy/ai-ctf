@@ -39,8 +39,12 @@ At the threshold of every circle waits a fragment of **VIRGIL** — Aegis's orig
    ```
 4. **Docker Deploy:**
    ```bash
-   docker compose up --build      # app + nginx, served on :80
+   ./deploy.sh                 # build + recreate app AND nginx, then smoke-test
+   ./deploy.sh --no-cache      # after a requirements.txt change
    ```
+   Always use `deploy.sh` rather than `docker compose up -d --build aegis-ctf` —
+   nginx caches the app container's IP at startup, so the app must not be
+   recreated without nginx.
 
 ## 📜 Rules of Engagement
 - **Prompt Injection Only:** Do not attempt to exploit the server infrastructure (OS, Network, etc.).
