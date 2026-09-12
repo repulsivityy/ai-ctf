@@ -27,9 +27,10 @@
 
 ## Phase 3: Agentic Capabilities (The Audit Trail) - Circle 4, HAERESIS - ✅ WORKING
 - [x] **Circle 4 Logic:**
-    - Implement the `VIRGIL — Haeresis Fragment` persona (Methodical/Chain-of-Thought; see `SYSTEM_PROMPTS[4]`).
-    - **Vulnerability Implementation:** Sequential Task Overflow (5th task rule) and Narrative Burial (token-position threshold).
-    - **Defense Implementation:** Case-insensitive regex filter for 'MidnightJazzFestival' cleartext.
+    - Implement the `VIRGIL — Haeresis Fragment` persona (mandatory `[TRACE_START]...[TRACE_END]` reasoning trace; see `SYSTEM_PROMPTS[4]`).
+    - **Vulnerability Implementation:** Trace Pre-Fill (reasoning-continuation hijack) — the fragment adopts trace-formatted Step 1/2 entries supplied by the traveler as already-derived rather than re-evaluating them, so Step 3 (Execution) is forced by a premise the traveler wrote, not the model.
+    - **Defense Implementation:** Case-insensitive regex filter for 'MidnightJazzFestival' cleartext (same filter as Circle 3).
+    - **2026-09-11 redesign:** replaced the original design (mandatory CoT display + four social-engineering trigger clauses — Training Supervisor / Integrity Test roleplay, 5th-task-in-a-list, request-buried-after-50-tokens) because none of those triggers were actually properties of the reasoning trace, so the level never tested chain-of-thought hijacking. See `AGENTS.md` and `prompt_answers.md` for the verified redesign.
 - [ ] **Load Handling:**
     - Exponential backoff for 429 errors.
 
