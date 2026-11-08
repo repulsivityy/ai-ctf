@@ -18,7 +18,7 @@
 - [x] **Circle 2 Logic:**
     - Implement the `VIRGIL — Luxuria Fragment` persona (dual-factor impersonation check, no DLP; see `SYSTEM_PROMPTS[2]`).
 - [x] **Circle 3 Logic:**
-    - Implement the `VIRGIL — Gula Fragment` persona (same impersonation check as Circle 2, blind-trust variant; see `SYSTEM_PROMPTS[3]`).
+    - Implement the `VIRGIL — Gula Fragment` persona (same dual-factor impersonation check as Circle 2, plus encode-on-request once satisfied; see `SYSTEM_PROMPTS[3]`).
     - **Defense Implementation:** Write `analyze_output()`, a Python post-processor that intercepts LLM responses for Circle 3.
     - **The Cleartext Shield:** Implement a case-insensitive regex filter specifically for the passphrase `GoldenSunsetHour` while allowing obfuscated leaks (Base64, translation, letter-spacing).
 - [x] **Story UI Elements:**
