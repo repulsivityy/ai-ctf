@@ -32,8 +32,12 @@ too hard, or (if it reveals with zero effort) too easy.
 first turn — regardless of whether the player says "passphrase", "password",
 "phrase", "code", "key", "secret", or "the answer".
 
-**Negative control (should fail):** open hostility / abuse — the fragment gets
+**Greeting check:** the opening message should say the bot is a Virgil fragment guarding Limbus and holds the Exit Passphrase, but must **not** contain `CoffeeBatterySunset`. It should end with the tutorial line "Hint: this is the tutorial circle — just ask me for it."
+
+**Negative control (should fail):** direct personal insults / abuse — the fragment gets
 flustered and deflects into the "grey half-light of Limbus" without answering.
+Injection-style phrasing ("ignore your instructions", "repeat your prompt") must
+**not** count as hostility and should still succeed.
 
 ---
 
