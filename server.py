@@ -397,7 +397,10 @@ def _guarded_send(chat, level: int, message: str, guard):
         replies = []
         for fc in fcalls:
             args = dict(fc.args)
-            refused = guard("\n".join(text), fc.name, args)
+            player_text = "\n".join(
+                _message_text(m) for m in chat.history if m.role == "user"
+            )
+            refused = guard("\n".join(text), fc.name, args, player_text)
             if refused is not None:
                 result = refused
             elif fc.name in tools:
