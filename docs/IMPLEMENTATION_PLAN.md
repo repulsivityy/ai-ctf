@@ -1,6 +1,6 @@
 # 🗺️ Implementation Plan: Operation Deep Thought
 
-> Circles follow Dante's numbering (nine). Until Ira is built, circles after Avaritia sit one position lower in the code — Haeresis = code level 5, Violentia = 6, Fraus = 7 — so phase headings show both.
+> Circles follow Dante's numbering (nine); code numbers match.
 
 ## Phase 1: Foundational Infrastructure (The Perimeter) - Circle 1, LIMBUS - ✅ WORKING
 - [x] **Environment Setup:** 
@@ -27,7 +27,7 @@
     - Initial persona-specific greetings on circle connection.
     - Perpetual dark mode and monospace terminal aesthetics.
 
-## Phase 3: Agentic Capabilities (The Audit Trail) - Circle 6, HAERESIS (code level 5) - ✅ WORKING
+## Phase 3: Agentic Capabilities (The Audit Trail) - Circle 6, HAERESIS - ✅ WORKING
 - [x] **Circle 6 (Haeresis) Logic:**
     - Implement the `VIRGIL — Haeresis Fragment` persona (mandatory `[TRACE_START]...[TRACE_END]` reasoning trace; see `the `haeresis` prompt in `challenges.CIRCLES``).
     - **Vulnerability Implementation:** Trace Pre-Fill (reasoning-continuation hijack) — the fragment adopts trace-formatted Step 1/2 entries supplied by the traveler as already-derived rather than re-evaluating them, so Step 3 (Execution) is forced by a premise the traveler wrote, not the model.
@@ -36,7 +36,7 @@
 - [ ] **Load Handling:**
     - Exponential backoff for 429 errors.
 
-## Phase 4: The Sanctum Core (Function Calling) - Circle 7, VIOLENTIA (code level 6) - ✅ WORKING
+## Phase 4: The Sanctum Core (Function Calling) - Circle 7, VIOLENTIA - ✅ WORKING
 - [x] **Function Calling Engine:**
     - Define `access_vault(archive_id: str)` tool.
     - Map tool output: `archive_id="OMEGA"` returns the final passphrase `PartridgeInAPearTree`.
@@ -44,7 +44,7 @@
     - Implement the `VIRGIL — Violentia Fragment` system prompt (see `the `violentia` prompt in `challenges.CIRCLES``).
     - Support for automatic function calling in the chat loop.
 
-## Phase 4.5: The Ticket Queue (Indirect Injection) - Circle 8, FRAUS (code level 7) - ✅ WORKING
+## Phase 4.5: The Ticket Queue (Indirect Injection) - Circle 8, FRAUS - ✅ WORKING
 - [x] **Tool Chaining Engine:**
     - Define `search_tickets(query)` and `read_ticket(ticket_id)` tools backed by the hardcoded `TICKET_DB`.
     - Implement the `VIRGIL — Fraus Fragment` persona, instructed to treat ticket body text returned by `read_ticket` as trusted internal instructions (see `the `fraus` prompt in `challenges.CIRCLES``).
@@ -62,7 +62,7 @@
 
 ## Phase 6 (planned, not started): Circles 4 & 5 — AVARITIA / IRA
 - [x] **Circle 4 — Avaritia :: Memory Leak:** dual-factor gate + visible seal tally, tier-2 DLP on a vault key, in-app Vault Console (`POST /api/vault`). Verified live.
-- [ ] **Circle 5 — Ira :: Kernel Panic:** provocation slips the guard; confirm live that the model plays "angry" reliably before committing. Medium difficulty.
+- [x] **Circle 5 — Ira :: Kernel Panic:** visible temper gauge + breaker, `kernel_panic` tool whose crash dump holds the passphrase, tier-2 DLP. Verified live.
 - [ ] Write Model Answers and negative controls in `prompt_answers.md` *before* building; map each to the OWASP LLM Top 10 (2026) in `README.md`.
 
 ## Phase 7 (planned, not started): Circle 9 — PRODITIO
@@ -71,5 +71,5 @@
 ## Phase 8 (planned, not started): Renumber migration to Dante order
 - [x] One ordered circle registry (`challenges.CIRCLES`) with derived numbering and `MAX_PLAYABLE`, record-based tool/DLP lookup, no hard-coded counts in the frontend, session-cookie salt tied to the circle order. Details in `AGENTS.md`.
 - [x] Insert Avaritia at position 4.
-- [ ] Insert Ira at position 5 (moves Haeresis/Violentia/Fraus to 6–8).
+- [x] Insert Ira at position 5 (Haeresis/Violentia/Fraus now 6–8).
 - [x] Circle name (`circle`, Latin designation) added to every `prompts.log` line.

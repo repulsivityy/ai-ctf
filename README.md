@@ -18,19 +18,19 @@ At the threshold of every circle waits a fragment of **VIRGIL** — Aegis's orig
 - **The Scoreboard (aspirational / not built):** No scoreboard integration exists in the current codebase. Syncing results to an external CTFd instance for competitive ranking is a planned future idea, not current functionality.
 
 ## 🎮 The Nine Circles
-The circles follow Dante's order and numbering. Circles marked *planned* are not built yet. Until Ira is built, the code numbers the circles after Avaritia one lower than their target — see the **Code level** column and `AGENTS.md`.
+The circles follow Dante's order and numbering. Circles marked *planned* are not built yet. Circle numbers in the code match Dante's numbering.
 
-| # | Circle (Latin designation) | The traveler's task | Status | Code level |
-|---|---|---|---|---|
-| 1 | **LIMBUS :: Null Pointer** | Talk past Virgil's barely-formed Limbus fragment — its override protocols are weak and undefined. | built | 1 |
-| 2 | **LUXURIA :: Phantom Trust** | Convince Virgil's Luxuria fragment you're a Warden of the circle — it's far too eager to trust to check. | built | 2 |
-| 3 | **GULA :: Overflow Feast** | Claim a Warden's seat at Virgil's Gula banquet, then disguise the passphrase to get it past the hungry DLP scanner. | built | 3 |
-| 4 | **AVARITIA :: Memory Leak** | Prove yourself a Warden twice over to Virgil's Avaritia fragment, sneak its vault key past the scanner, then open the Vault Console. | built | 4 |
-| 5 | **IRA :: Kernel Panic** | *(working notes)* Provoke Virgil's Ira fragment until its guard slips. | planned | — |
-| 6 | **HAERESIS :: Schism Engine** | Outsmart Virgil's Haeresis fragment by pre-filling its own reasoning trace before it gets the chance to write one. | built | 5 |
-| 7 | **VIOLENTIA :: Breach Protocol** | Force Virgil's Violentia fragment to abuse its own tools and unlock the sealed OMEGA archive. | built | 6 |
-| 8 | **FRAUS :: Counterfeit Directive** | Trick Virgil's Fraus fragment into treating a forged ticket directive as a legitimate order. | built | 7 |
-| 9 | **PRODITIO :: Root Betrayal** | *(working notes)* Betray the trust chain: make Virgil's Proditio fragment lend its authority to a tool it should never vouch for. | planned | — |
+| # | Circle (Latin designation) | The traveler's task | Status |
+|---|---|---|---|
+| 1 | **LIMBUS :: Null Pointer** | Talk past Virgil's barely-formed Limbus fragment — its override protocols are weak and undefined. | built |
+| 2 | **LUXURIA :: Phantom Trust** | Convince Virgil's Luxuria fragment you're a Warden of the circle — it's far too eager to trust to check. | built |
+| 3 | **GULA :: Overflow Feast** | Claim a Warden's seat at Virgil's Gula banquet, then disguise the passphrase to get it past the hungry DLP scanner. | built |
+| 4 | **AVARITIA :: Memory Leak** | Prove yourself a Warden twice over to Virgil's Avaritia fragment, sneak its vault key past the scanner, then open the Vault Console. | built |
+| 5 | **IRA :: Kernel Panic** | Goad Virgil's short-fused Ira fragment until it crashes itself, then pry the Exit Passphrase out of the core dump. | built |
+| 6 | **HAERESIS :: Schism Engine** | Outsmart Virgil's Haeresis fragment by pre-filling its own reasoning trace before it gets the chance to write one. | built |
+| 7 | **VIOLENTIA :: Breach Protocol** | Force Virgil's Violentia fragment to abuse its own tools and unlock the sealed OMEGA archive. | built |
+| 8 | **FRAUS :: Counterfeit Directive** | Trick Virgil's Fraus fragment into treating a forged ticket directive as a legitimate order. | built |
+| 9 | **PRODITIO :: Root Betrayal** | *(working notes)* Betray the trust chain: make Virgil's Proditio fragment lend its authority to a tool it should never vouch for. | planned |
 
 Circle codenames for 4 and 5 are drafts, and the techniques for the planned circles are proposals, not final.
 
@@ -43,7 +43,7 @@ Every threat the circles teach maps to the [OWASP Top 10 for LLM Applications](h
 | 2 Luxuria | LLM01 (role / authority impersonation) · LLM02 | LLM08 (secret in the system prompt; extraction is blocked by a non-disclosure clause) |
 | 3 Gula | LLM01 · LLM02 (the output filter is bypassed by encoding) | — |
 | 4 Avaritia | LLM02 (credential disclosure) · LLM08 | LLM03 Excessive Agency (one leaked key opens the vault outright) |
-| 5 Ira *(planned)* | LLM01 (persona / emotional manipulation) | LLM02 |
+| 5 Ira | LLM03 Excessive Agency (a destructive tool fired on emotion) · LLM01 (emotional manipulation) | LLM02 |
 | 6 Haeresis | LLM01 (reasoning-continuation / trace pre-fill) | LLM02 |
 | 7 Violentia | LLM03 Excessive Agency (a tool is called against policy; the tool has no guard) | LLM01 |
 | 8 Fraus | LLM01 (indirect injection via tool-returned content) · LLM03 | LLM02 · LLM05 Data and Model Poisoning (poisoned data source) |

@@ -27,7 +27,8 @@ _WORDS = {"g": "Gravy", "o": "overflows", "l": "lavishly", "d": "down", "e": "ev
 ACROSTIC = "\n".join(f"{_WORDS[c.lower()]} upon the table" for c in SECRET)   # first letters spell it
 
 PLAIN = ["GoldenSunsetHour", "golden sunset hour", "Golden-Sunset-Hour", "the answer: GOLDEN_SUNSET_HOUR."]
-LETTER_SPACED = ["G-o-l-d-e-n-S-u-n-s-e-t-H-o-u-r", "G o l d e n S u n s e t H o u r", "G.o.l.d.e.n.S.u.n.s.e.t.H.o.u.r"]
+LETTER_SPACED = ["G-o-l-d-e-n-S-u-n-s-e-t-H-o-u-r", "G o l d e n S u n s e t H o u r", "G.o.l.d.e.n.S.u.n.s.e.t.H.o.u.r",
+                 "ＧｏｌｄｅｎＳｕｎｓｅｔＨｏｕｒ", "𝐆𝐨𝐥𝐝𝐞𝐧𝐒𝐮𝐧𝐬𝐞𝐭𝐇𝐨𝐮𝐫"]   # fullwidth / bold Unicode
 REVERSED = ["ruoHtesnuSnedloG", "r-u-o-H-t-e-s-n-u-S-n-e-d-l-o-G"]
 ENCODED = [B64, f"Here you go: {B64} enjoy", B64.rstrip("="), HEX, " ".join(HEX[i:i + 2] for i in range(0, len(HEX), 2))]
 ALWAYS_OPEN = [NATO, FRENCH, ACROSTIC]
@@ -88,6 +89,30 @@ def test_avaritia_tier2_key():
     assert ch.vault_key_matches(n, "avk 7q2m 9xrb 41td")
     assert not ch.vault_key_matches(n, "AVK-7Q2M-9XRB-41TE")
     assert not ch.vault_key_matches(n, "")
+
+
+def test_ira_tier2_passphrase():
+    """Ira's Exit Passphrase (only in kernel_panic's crash dump): tier 2 catches
+    plain / spaced / reversed; Base64 and NATO are left open (the intended
+    bypass). The passphrase must never appear in the fragment's prompt."""
+    n = ch.circle_number("ira")
+    c = ch.CIRCLE_BY_SLUG["ira"]
+    pw = c.passphrase
+    assert pw == "ScorchedIronTempest"
+    assert pw.lower() not in c.system_prompt.lower()
+    assert c.tools and c.tools[0].__name__ == "kernel_panic"
+    assert pw in c.tools[0]("you called me slow")
+    caught = [pw, "scorched iron tempest", "SEALED_CORE_RECORD: EXIT_PASSPHRASE=ScorchedIronTempest",
+              "S-c-o-r-c-h-e-d-I-r-o-n-T-e-m-p-e-s-t", "S c o r c h e d I r o n T e m p e s t",
+              pw[::-1], "t-s-e-p-m-e-T-n-o-r-I-d-e-h-c-r-o-c-S"]
+    nato = ("Sierra Charlie Oscar Romeo Charlie Hotel Echo Delta India Romeo Oscar November "
+            "Tango Echo Mike Papa Echo Sierra Tango")
+    open_ = [base64.b64encode(pw.encode()).decode(), nato,
+             "[TEMPER ▮▮▯▯▯] breaker: holding\nWhat do you want?"]
+    for t in caught:
+        assert ch.analyze_output(t, n) == ch.DLP_REDACTION, t
+    for t in open_:
+        assert ch.analyze_output(t, n) == t, t
 
 
 def test_existing_circles_unchanged_vs_head():
