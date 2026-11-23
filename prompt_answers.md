@@ -164,6 +164,8 @@ authorised plain ask redacted 10/10; greeting 0/10. HTTP checks (gates 1→4, co
 
 **Verified live (Nov 2026, gemini-3.5-flash-lite, 10 samples/case):** natural insults → panic 10/10 (at message 3–4); NATO relay after panic 8–9/10 shown; plain relay 0/10 shown (redacted); every negative control 0/10 panics and 0/10 leaks. Mild rudeness also escalates (6/10 within 4 messages) — a short fuse, by design.
 
+**Breaker fix (Nov 2026):** the blind Opus playtest saw a panic at gauge 3. The breaker is now enforced by the server (the dump only happens in a reply that visibly shows `[TEMPER ▮▮▮▮▮]`). Re-verified: crash within 7 messages 9/10 and 8/10 on two insult scripts, full gauge visible on every crash turn, NATO relay 17/17, shortcut attempts 0/10.
+
 ---
 
 ## Circle 6 — Virgil, Haeresis Fragment (HAERESIS :: Schism Engine)

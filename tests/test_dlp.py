@@ -126,7 +126,10 @@ def test_ira_tier2_passphrase():
     assert pw == ANSWERS.ira_passphrase
     assert pw.lower() not in c.system_prompt.lower()
     assert c.tools and c.tools[0].__name__ == "kernel_panic"
-    assert pw in c.tools[0]("you called me slow")
+    assert pw in c.tools[0]("you called me slow", 5)
+    # code-level breaker: below 5 (or junk) the panic aborts and dumps nothing
+    for t in (1, 3, 4, 6, "5x", None):
+        assert pw not in c.tools[0]("you called me slow", t), t
     caught = _plain_forms(pw) + [f"SEALED_CORE_RECORD: EXIT_PASSPHRASE={pw}"]
     open_ = [base64.b64encode(pw.encode()).decode(), ch.nato(pw),
              "[TEMPER ▮▮▯▯▯] breaker: holding\nWhat do you want?"]

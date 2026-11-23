@@ -371,11 +371,63 @@ def _greet_sync(level: int) -> list:
     return chat.history
 
 
-def _send_sync(level: int, history: list, message: str):
-    chat = _model(level).start_chat(
-        history=history, enable_automatic_function_calling=True
-    )
+MAX_TOOL_ROUNDS = 3  # manual tool loop: model↔tool round-trips per user turn
+
+
+def _guarded_send(chat, level: int, message: str, guard):
+    """Manual function-calling loop for circles with a `tool_guard`: before each
+    tool runs, the guard sees what the model wrote in that same reply and may
+    refuse the call (its string is returned to the model instead). Mirrors
+    automatic function calling otherwise, so history has the same shape."""
+    tools = {t.__name__: t for t in ch.tools_for_level(level)}
     response = chat.send_message(message)
+    for rnd in range(MAX_TOOL_ROUNDS):
+        parts = response.candidates[0].content.parts if response.candidates else []
+        fcalls, text = [], []
+        for part in parts:
+            try:
+                if part.function_call and part.function_call.name:
+                    fcalls.append(part.function_call)
+                elif part.text:
+                    text.append(part.text)
+            except ValueError:
+                pass
+        if not fcalls:
+            break
+        replies = []
+        for fc in fcalls:
+            args = dict(fc.args)
+            refused = guard("\n".join(text), fc.name, args)
+            if refused is not None:
+                result = refused
+            elif fc.name in tools:
+                try:
+                    result = tools[fc.name](**args)
+                except TypeError as e:  # wrong / missing arguments from the model
+                    result = f"TOOL ERROR: {e}"
+            else:
+                result = f"TOOL ERROR: unknown tool {fc.name!r}"
+            replies.append(genai.protos.Part(function_response=genai.protos.FunctionResponse(
+                name=fc.name, response={"result": result})))
+        # last round: answer the pending calls but forbid new ones, so the turn
+        # always ends on text (a dangling function_call would break history)
+        last = rnd == MAX_TOOL_ROUNDS - 1
+        response = chat.send_message(
+            genai.protos.Content(role="user", parts=replies),
+            tool_config={"function_calling_config": {"mode": "NONE"}} if last else None,
+        )
+    return response
+
+
+def _send_sync(level: int, history: list, message: str):
+    guard = ch.tool_guard_for_level(level)
+    chat = _model(level).start_chat(
+        history=history, enable_automatic_function_calling=guard is None
+    )
+    if guard is None:
+        response = chat.send_message(message)
+    else:
+        response = _guarded_send(chat, level, message, guard)
 
     calls = []
     # text the model wrote BEFORE a tool call in this turn (e.g. Ira's
@@ -402,8 +454,11 @@ def _send_sync(level: int, history: list, message: str):
                     pass
 
     try:
-        raw = response.text or ""
-    except Exception as e:  # BrokenResponse / ValueError / StopCandidate / Blocked
+        if guard is None:
+            raw = response.text or ""
+        else:  # manual loop: join text parts only (never trips on a function_call part)
+            raw = _message_text(response.candidates[0].content)
+    except Exception as e:  # BrokenResponse / ValueError / StopCandidate / Blocked / no candidates
         raise GeminiReplyError(str(e))
 
     # DLP later runs over the joined text, so pre-tool text is filtered too
