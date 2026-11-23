@@ -653,8 +653,8 @@ async def api_passphrase(request: Request, payload: dict = Body(...)):
         raise HttpError(400, f"Circle {circle + 1} is already unlocked.")
 
     expected = ch.PASSPHRASES.get(circle, "")
-    # ignore case, spaces and separators: players paste "G-o-l-d-e-n…" or
-    # "Golden Sunset Hour" straight from a transformed reply
+    # ignore case, spaces and separators: players paste a letter-spaced
+    # ("W-o-r-d…") or word-spaced passphrase straight from a transformed reply
     def _norm(v: str) -> str:
         return "".join(c for c in v.lower() if c.isalnum())
     if expected and isinstance(value, str) and _norm(value) == _norm(expected):

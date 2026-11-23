@@ -39,7 +39,7 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 if [ ! -f .env ]; then
-  echo "!! no .env file — copy .env.example and set GEMINI_API_KEY" >&2
+  echo "!! no .env file — copy .env.example, set GEMINI_API_KEY and the CIRCLE_* answers" >&2
   exit 1
 fi
 

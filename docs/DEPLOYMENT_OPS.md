@@ -17,6 +17,7 @@
 - `MODEL_ARMOR_LOCATION`: Model Armor region (e.g. `asia-southeast1` or `us-central1`, defaults to `us-central1`). Note: Must be a regional location; `global` is not supported for sanitization operations.
 - `MODEL_ARMOR_TEMPLATE_ID`: Model Armor Template ID.
 - `MODEL_ARMOR_ENABLED`: Enable/disable Model Armor inspection (`true` / `false`, defaults to `true`).
+- **CTF answers (required):** `CIRCLE_LIMBUS_PASSPHRASE`, `CIRCLE_LUXURIA_PASSPHRASE`, `CIRCLE_GULA_PASSPHRASE`, `CIRCLE_AVARITIA_PASSPHRASE`, `CIRCLE_IRA_PASSPHRASE`, `CIRCLE_HAERESIS_PASSPHRASE`, `CIRCLE_VIOLENTIA_PASSPHRASE` (CamelCase words, letters only), `CIRCLE_AVARITIA_VAULT_KEY` (uppercase groups joined by hyphens) and `CIRCLE_FRAUS_OVERRIDE_KEY` (CamelCase). Loaded and validated by `answers.py` at import; all must be distinct. Prompts, tool outputs, letter/NATO/Base64 references and DLP patterns are generated from them, so rotating a value needs no code change — just redeploy. Sample values are in `.env.example`.
 
 ### Health & Serving
 - Container listens on `:8000`; nginx proxies `:80` → `aegis-ctf:8000`.

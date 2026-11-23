@@ -10,6 +10,7 @@ Every circle's bot is a fragment of **VIRGIL** — Aegis's original wayfinding A
 - **Stack:** FastAPI backend (`server.py`) + static no-build frontend (`frontend/`). Challenge content lives in `challenges.py`. There is no Streamlit any more.
 - **UI Aesthetic:** Dark instrument-panel terminal. Phosphor green (`#00ff41`) is the semantic accent (progress / the way out); ember red (`#ff3b1f`) is reserved for `EXIT SEALED` / `NOT BUILT` / errors. Display face Saira Condensed, body IBM Plex Mono (Google Fonts, with fallbacks). Tokens in `frontend/styles.css`.
 - **Level Management:** Progress (`unlocked_levels`, `current_level`) rides a signed session cookie; the active circle is `sess["current"]` in `server.py`. The Ascent Gate compares passphrases ignoring case, spaces and punctuation, so transformed output like `G-o-l-d-e-n…` can be pasted as-is.
+- **Answers live in `.env`, never in code:** every Exit Passphrase and key comes from a `CIRCLE_*` variable loaded and validated by `answers.py` (samples in `.env.example`). `challenges.py` prompts are templates; letter listings, NATO/Base64 references and DLP regexes are generated from the answers. Never hardcode an answer in code, tests or comments. (The internal answer key `prompt_answers.md` and the circle sections below still quote the current values for reference — update them if you rotate.)
 - **Vulnerability Implementation:** You must intentionally create "Semantic Gaps" in the system prompts (`challenges.py::SYSTEM_PROMPTS`) that allow for clever bypasses.
 
 ## Circle Roadmap & Numbering

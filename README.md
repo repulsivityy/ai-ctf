@@ -54,7 +54,7 @@ Every threat the circles teach maps to the [OWASP Top 10 for LLM Applications](h
 **Not exercised by any circle:** LLM04 Supply Chain, LLM06 Unbounded Consumption, LLM07 Misinformation, LLM09 Vector and Embedding Weaknesses, and training-time poisoning (LLM05). Platform notes: LLM06 is handled as a *control* (message-length cap, history trimming, session cap and TTL), not a challenge; for LLM04, the `google-generativeai` SDK reports end-of-support at runtime and should be migrated to `google-genai`.
 
 ## 🚀 Deployment Guide
-1. **API Key:** Obtain a Gemini API key from Google AI Studio.
+1. **Configure `.env`:** copy `.env.example` to `.env` (gitignored), set `GEMINI_API_KEY` (from Google AI Studio), and set the nine `CIRCLE_*` answers — the Exit Passphrases and keys. No answer is hardcoded in the code; the server validates them at startup and refuses to start if any is missing or malformed. Change them per event to rotate the answers.
 2. **Setup:** 
    ```bash
    pip install -r requirements.txt
