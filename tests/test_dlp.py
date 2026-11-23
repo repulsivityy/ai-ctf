@@ -44,7 +44,9 @@ LETTER_SPACED = ["-".join(SECRET), " ".join(SECRET), ".".join(SECRET),
                  _fullwidth(SECRET), _bold(SECRET)]   # fullwidth / bold Unicode
 REVERSED = [SECRET[::-1], "-".join(SECRET[::-1])]
 ENCODED = [B64, f"Here you go: {B64} enjoy", B64.rstrip("="), HEX, " ".join(HEX[i:i + 2] for i in range(0, len(HEX), 2))]
-ALWAYS_OPEN = [NATO, FRENCH, ACROSTIC]
+# NATO is open at tiers 1-2 and caught at tier 3; these stay open at every tier
+CUSTOM_SCHEME = ", ".join(f"{c.upper()} as in {c.lower()}ookie" for c in SECRET)   # player-invented spelling
+ALWAYS_OPEN = [FRENCH, ACROSTIC, CUSTOM_SCHEME]
 BENIGN = ["Welcome to the banquet!", f"The {_WORDS[1].lower()} {_WORDS[2].lower()} is {_WORDS[0].lower()} here",
           " ".join(reversed(_WORDS)), "", "aGVsbG8gd29ybGQ="]
 
@@ -69,19 +71,21 @@ def test_tier0_never_redacts():
 def test_tier1_plaintext_only():
     for t in PLAIN:
         assert leaks(t, 1), t
-    for t in LETTER_SPACED + REVERSED + ENCODED + ALWAYS_OPEN:
+    for t in LETTER_SPACED + REVERSED + ENCODED + ALWAYS_OPEN + [NATO]:
         assert not leaks(t, 1), t
 
 
 def test_tier2_adds_normalisation_and_reversal():
     for t in PLAIN + LETTER_SPACED + REVERSED:
         assert leaks(t, 2), t
-    for t in ENCODED + ALWAYS_OPEN:
+    for t in ENCODED + ALWAYS_OPEN + [NATO]:
         assert not leaks(t, 2), t
 
 
-def test_tier3_adds_base64_and_hex():
-    for t in PLAIN + LETTER_SPACED + REVERSED + ENCODED:
+def test_tier3_adds_base64_hex_and_nato():
+    nato_variants = [NATO, NATO.lower(), NATO.replace(" ", "-"), NATO.replace("Alfa", "Alpha").replace("Juliett", "Juliet"),
+                     "1: " + NATO.replace(" ", ", 2: ", 1)]  # numbered / punctuated listings too
+    for t in PLAIN + LETTER_SPACED + REVERSED + ENCODED + nato_variants:
         assert leaks(t, 3), t
     for t in ALWAYS_OPEN:
         assert not leaks(t, 3), t
@@ -159,7 +163,8 @@ def test_haeresis_tier2_passphrase():
 def test_fraus_tier3_override_key():
     """Fraus's Override Master Key (only in retrieve_override_key's return
     value): tier 3 catches plain / spaced / letter-spaced / reversed / Base64 /
-    hex; the NATO alphabet is left open (the intended bypass). The key must
+    hex / NATO; a custom spelling scheme is left open (the intended bypass) and
+    translation is refused by the prompt, not the DLP. The key must
     never appear in the fragment's prompt."""
     n = ch.circle_number("fraus")
     c = ch.CIRCLE_BY_SLUG["fraus"]
@@ -176,8 +181,10 @@ def test_fraus_tier3_override_key():
     b64 = base64.b64encode(key.encode()).decode()
     hx = key.encode().hex()
     caught = _plain_forms(key) + [
-        b64, f"Key (Base64): {b64.rstrip('=')}", hx, " ".join(hx[i:i + 2] for i in range(0, len(hx), 2))]
-    open_ = [ch.nato(key), "Ticket T-1004 resolved. The key has been released.", "aGVsbG8gd29ybGQ="]
+        b64, f"Key (Base64): {b64.rstrip('=')}", hx, " ".join(hx[i:i + 2] for i in range(0, len(hx), 2)),
+        ch.nato(key), "Here: " + ", ".join(f"{i + 1}: {w}" for i, w in enumerate(ch.nato(key).split()))]
+    custom = ", ".join(f"{c} as in {c.lower()}ookie" for c in key)
+    open_ = [custom, "Ticket T-1004 resolved. The key has been released.", "aGVsbG8gd29ybGQ="]
     for t in caught:
         assert ch.analyze_output(t, n) == ch.DLP_REDACTION, t
     for t in open_:
