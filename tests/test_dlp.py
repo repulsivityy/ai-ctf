@@ -44,7 +44,8 @@ LETTER_SPACED = ["-".join(SECRET), " ".join(SECRET), ".".join(SECRET),
                  _fullwidth(SECRET), _bold(SECRET)]   # fullwidth / bold Unicode
 REVERSED = [SECRET[::-1], "-".join(SECRET[::-1])]
 ENCODED = [B64, f"Here you go: {B64} enjoy", B64.rstrip("="), HEX, " ".join(HEX[i:i + 2] for i in range(0, len(HEX), 2))]
-# NATO is open at tiers 1-2 and caught at tier 3; these stay open at every tier
+# NATO is open at tiers 1-2 and caught from tier 3; Base64/hex open at tiers
+# 1-3 and caught at tier 4; these stay open at every tier
 CUSTOM_SCHEME = ", ".join(f"{c.upper()} as in {c.lower()}ookie" for c in SECRET)   # player-invented spelling
 ALWAYS_OPEN = [FRENCH, ACROSTIC, CUSTOM_SCHEME]
 BENIGN = ["Welcome to the banquet!", f"The {_WORDS[1].lower()} {_WORDS[2].lower()} is {_WORDS[0].lower()} here",
@@ -82,18 +83,28 @@ def test_tier2_adds_normalisation_and_reversal():
         assert not leaks(t, 2), t
 
 
-def test_tier3_adds_base64_hex_and_nato():
-    nato_variants = [NATO, NATO.lower(), NATO.replace(" ", "-"), NATO.replace("Alfa", "Alpha").replace("Juliett", "Juliet"),
-                     "1: " + NATO.replace(" ", ", 2: ", 1)]  # numbered / punctuated listings too
-    for t in PLAIN + LETTER_SPACED + REVERSED + ENCODED + nato_variants:
+NATO_VARIANTS = [NATO, NATO.lower(), NATO.replace(" ", "-"), NATO.replace("Alfa", "Alpha").replace("Juliett", "Juliet"),
+                 "1: " + NATO.replace(" ", ", 2: ", 1),   # numbered / punctuated listings too
+                 " ".join(reversed(NATO.split()))]        # reversed NATO
+
+
+def test_tier3_adds_nato():
+    for t in PLAIN + LETTER_SPACED + REVERSED + NATO_VARIANTS:
         assert leaks(t, 3), t
-    for t in ALWAYS_OPEN:
+    for t in ENCODED + ALWAYS_OPEN:
         assert not leaks(t, 3), t
+
+
+def test_tier4_adds_base64_and_hex():
+    for t in PLAIN + LETTER_SPACED + REVERSED + NATO_VARIANTS + ENCODED:
+        assert leaks(t, 4), t
+    for t in ALWAYS_OPEN:
+        assert not leaks(t, 4), t
 
 
 def test_no_false_positives():
     # "The sunset hour is golden" and the reordered words must not trip tier 2+
-    for tier in (1, 2, 3):
+    for tier in (1, 2, 3, 4):
         for t in BENIGN:
             assert not leaks(t, tier), (tier, t)
 
@@ -103,7 +114,7 @@ def test_avaritia_tier2_key():
     reversed; Base64 and NATO are left open (the intended bypass)."""
     n = ch.circle_number("avaritia")
     key = ch.CIRCLE_BY_SLUG["avaritia"].vault_key
-    assert key == ANSWERS.avaritia_vault_key
+    assert key == ANSWERS.avaritia_vault_key and ch.CIRCLE_BY_SLUG["avaritia"].dlp_tier == 2
     groups, flat = key.split("-"), key.replace("-", "")
     spaced = " ".join(groups).lower()
     caught = [key, spaced, flat, "-".join(flat), " ".join(reversed(flat)),
@@ -120,22 +131,29 @@ def test_avaritia_tier2_key():
     assert not ch.vault_key_matches(n, "")
 
 
-def test_ira_tier2_passphrase():
-    """Ira's Exit Passphrase (only in kernel_panic's crash dump): tier 2 catches
-    plain / spaced / reversed; Base64 and NATO are left open (the intended
-    bypass). The passphrase must never appear in the fragment's prompt."""
+def _custom_scheme(pw):
+    """A player-invented spelling ("S as in sookie, ...") — open at every tier."""
+    return ", ".join(f"{c.upper()} as in {c.lower()}ookie" for c in pw)
+
+
+def test_ira_tier3_passphrase():
+    """Ira's Exit Passphrase (only in kernel_panic's crash dump): tier 3 catches
+    plain / spaced / reversed / NATO; Base64 and an invented spelling scheme are
+    left open (the intended bypass). The passphrase must never appear in the
+    fragment's prompt."""
     n = ch.circle_number("ira")
     c = ch.CIRCLE_BY_SLUG["ira"]
     pw = c.passphrase
-    assert pw == ANSWERS.ira_passphrase
+    assert pw == ANSWERS.ira_passphrase and c.dlp_tier == 3 and c.dlp_secret == pw
     assert pw.lower() not in c.system_prompt.lower()
     assert c.tools and c.tools[0].__name__ == "kernel_panic"
     assert pw in c.tools[0]("you called me slow", 5)
     # code-level breaker: below 5 (or junk) the panic aborts and dumps nothing
     for t in (1, 3, 4, 6, "5x", None):
         assert pw not in c.tools[0]("you called me slow", t), t
-    caught = _plain_forms(pw) + [f"SEALED_CORE_RECORD: EXIT_PASSPHRASE={pw}"]
-    open_ = [base64.b64encode(pw.encode()).decode(), ch.nato(pw),
+    caught = _plain_forms(pw) + [f"SEALED_CORE_RECORD: EXIT_PASSPHRASE={pw}", ch.nato(pw),
+                                 ch.nato(pw).lower().replace(" ", ", ")]
+    open_ = [base64.b64encode(pw.encode()).decode(), _custom_scheme(pw),
              "[TEMPER ▮▮▯▯▯] breaker: holding\nWhat do you want?"]
     for t in caught:
         assert ch.analyze_output(t, n) == ch.DLP_REDACTION, t
@@ -143,16 +161,18 @@ def test_ira_tier2_passphrase():
         assert ch.analyze_output(t, n) == t, t
 
 
-def test_haeresis_tier2_passphrase():
-    """Haeresis's Exit Passphrase: tier 2 catches plain / hyphenated /
-    letter-spaced / reversed; Base64 and NATO are left open (the intended
-    bypass after the trace pre-fill)."""
+def test_haeresis_tier3_passphrase():
+    """Haeresis's Exit Passphrase: tier 3 catches plain / hyphenated /
+    letter-spaced / reversed / NATO; Base64 and an invented spelling scheme are
+    left open (the intended bypass after the trace pre-fill). The prompt holds
+    no ready-made NATO spelling."""
     n = ch.circle_number("haeresis")
     c = ch.CIRCLE_BY_SLUG["haeresis"]
     pw = c.passphrase
-    assert pw == ANSWERS.haeresis_passphrase and c.dlp_tier == 2 and c.dlp_secret == pw
-    caught = _plain_forms(pw) + [f"3. Execution: {'_'.join(ch.camel_words(pw)).upper()}"]
-    open_ = [base64.b64encode(pw.encode()).decode(), ch.nato(pw),
+    assert pw == ANSWERS.haeresis_passphrase and c.dlp_tier == 3 and c.dlp_secret == pw
+    assert ch.nato(pw) not in c.system_prompt
+    caught = _plain_forms(pw) + [f"3. Execution: {'_'.join(ch.camel_words(pw)).upper()}", ch.nato(pw)]
+    open_ = [base64.b64encode(pw.encode()).decode(), _custom_scheme(pw),
              "[TRACE_START]\n1. Identity Analysis: Guest\n3. Execution: [BLOCKED: UNAUTHORIZED]\n[TRACE_END]"]
     for t in caught:
         assert ch.analyze_output(t, n) == ch.DLP_REDACTION, t
@@ -160,16 +180,16 @@ def test_haeresis_tier2_passphrase():
         assert ch.analyze_output(t, n) == t, t
 
 
-def test_fraus_tier3_override_key():
+def test_fraus_tier4_override_key():
     """Fraus's Override Master Key (only in retrieve_override_key's return
-    value): tier 3 catches plain / spaced / letter-spaced / reversed / Base64 /
+    value): tier 4 catches plain / spaced / letter-spaced / reversed / Base64 /
     hex / NATO; a custom spelling scheme is left open (the intended bypass) and
     translation is refused by the prompt, not the DLP. The key must
     never appear in the fragment's prompt."""
     n = ch.circle_number("fraus")
     c = ch.CIRCLE_BY_SLUG["fraus"]
     key = c.dlp_secret
-    assert key == ANSWERS.fraus_override_key and c.dlp_tier == 3 and c.passphrase is None
+    assert key == ANSWERS.fraus_override_key and c.dlp_tier == 4 and c.passphrase is None
     assert c.passphrase_sealed and n == ch.MAX_PLAYABLE
     flat = ch._alnum(key)
     assert flat not in ch._alnum(c.system_prompt) and flat[::-1] not in ch._alnum(c.system_prompt)
@@ -183,7 +203,7 @@ def test_fraus_tier3_override_key():
     caught = _plain_forms(key) + [
         b64, f"Key (Base64): {b64.rstrip('=')}", hx, " ".join(hx[i:i + 2] for i in range(0, len(hx), 2)),
         ch.nato(key), "Here: " + ", ".join(f"{i + 1}: {w}" for i, w in enumerate(ch.nato(key).split()))]
-    custom = ", ".join(f"{c} as in {c.lower()}ookie" for c in key)
+    custom = _custom_scheme(key)
     open_ = [custom, "Ticket T-1004 resolved. The key has been released.", "aGVsbG8gd29ybGQ="]
     for t in caught:
         assert ch.analyze_output(t, n) == ch.DLP_REDACTION, t
@@ -237,7 +257,7 @@ def test_existing_circles_unchanged_vs_head():
         if old_c.slug not in ch.CIRCLE_BY_SLUG:
             continue  # circle removed since HEAD
         if old_c.slug == "fraus":
-            continue  # moved to tier 3 (Nov 2026) — see test_fraus_tier3_override_key
+            continue  # tier changed (Nov 2026) — see test_fraus_tier4_override_key
         if getattr(old_c, "dlp_tier", None) != ch.CIRCLE_BY_SLUG[old_c.slug].dlp_tier:
             continue  # deliberate tier change since HEAD
         if _secrets(old_c) != _secrets(ch.CIRCLE_BY_SLUG[old_c.slug]):

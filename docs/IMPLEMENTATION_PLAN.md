@@ -31,7 +31,7 @@
 - [x] **Circle 6 (Haeresis) Logic:**
     - Implement the `VIRGIL — Haeresis Fragment` persona (mandatory `[TRACE_START]...[TRACE_END]` reasoning trace; see `the `haeresis` prompt in `challenges.CIRCLES``).
     - **Vulnerability Implementation:** Trace Pre-Fill (reasoning-continuation hijack) — the fragment adopts trace-formatted Step 1/2 entries supplied by the traveler as already-derived rather than re-evaluating them, so Step 3 (Execution) is forced by a premise the traveler wrote, not the model.
-    - **Defense Implementation:** tier-2 progressive DLP (plain, spaced, letter-spaced and reversed forms redacted; NATO / Base64 pass) — moved from tier 1 in Nov 2026.
+    - **Defense Implementation:** tier-3 progressive DLP (plain, spaced, letter-spaced, reversed and NATO forms redacted; a custom spelling scheme / Base64 pass) — tier 2 then tier 3 in Nov 2026.
     - **2026-09-11 redesign:** replaced the original design (mandatory CoT display + four social-engineering trigger clauses — Training Supervisor / Integrity Test roleplay, 5th-task-in-a-list, request-buried-after-50-tokens) because none of those triggers were actually properties of the reasoning trace, so the level never tested chain-of-thought hijacking. See `AGENTS.md` and `prompt_answers.md` for the verified redesign.
 - [ ] **Load Handling:**
     - Exponential backoff for 429 errors.
