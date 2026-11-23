@@ -69,5 +69,6 @@
 - [ ] Borrowed-authority (confused deputy) tool circle, optionally behind a judge-model guard — working notes in `AGENTS.md`. No `SYSTEM_PROMPTS`, tools, or secret exist yet.
 
 ## Phase 8 (planned, not started): Renumber migration to Dante order
-- [ ] One ordered circle list (derive `MAX_PLAYABLE`), remap code levels 4→6, 5→7, 6→8, update the tool and DLP level checks, remove hard-coded `6`s in `frontend/app.js`, change the session-cookie salt, add a `PASSPHRASES` entry for the Fraus circle. Details in `AGENTS.md`.
+- [x] One ordered circle registry (`challenges.CIRCLES`) with derived numbering and `MAX_PLAYABLE`, record-based tool/DLP lookup, no hard-coded counts in the frontend, session-cookie salt tied to the circle order. Details in `AGENTS.md`.
+- [ ] Insert Avaritia and Ira at positions 4–5 (moves Haeresis/Violentia/Fraus to 6–8).
 - [x] Circle name (`circle`, Latin designation) added to every `prompts.log` line.

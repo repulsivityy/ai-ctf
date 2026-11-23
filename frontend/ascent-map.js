@@ -43,7 +43,14 @@ function plateHTML(s) {
 
 let resizeBound = false;
 
-export function renderAscentMap(root, { strata = [], cleared = 0, total = 6, exitOpen = false, onSelect } = {}) {
+export function renderAscentMap(root, {
+  strata = [],
+  cleared = 0,
+  // playable circles; defaults to the built (non-void) strata
+  total = strata.filter((s) => s.status !== "void").length,
+  exitOpen = false,
+  onSelect,
+} = {}) {
   let seg = "";
   for (let i = 0; i < total; i++) seg += `<i class="${i < cleared ? "on" : ""}"></i>`;
 

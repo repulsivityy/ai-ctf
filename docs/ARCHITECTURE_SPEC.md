@@ -1,6 +1,7 @@
 # 🏗️ Technical Architecture Specification
 
 ## 1. State Management
+- **Circle registry:** `challenges.CIRCLES` is the single ordered source of truth for every circle; numbers derive from list position and the cookie salt embeds the order, so reordering resets sessions once.
 - **User Session:** a signed cookie tracks progress; `server.py` holds chat history in-process. Tracked:
     - `authenticated`: Boolean for global gateway access.
     - `current_level`: code levels 1–6 today. The target is nine circles in Dante's order (Avaritia 4, Ira 5 and Proditio 9 are planned; Haeresis, Violentia and Fraus will become 6, 7 and 8) — see `AGENTS.md`.

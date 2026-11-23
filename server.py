@@ -120,7 +120,11 @@ def _load_or_create_secret() -> str:
         return generated
 
 
-_serializer = URLSafeSerializer(_load_or_create_secret(), salt="aegis-session")
+# Cookies store circle NUMBERS, so the salt carries a fingerprint of the circle
+# order: inserting / reordering circles invalidates old cookies (one forced
+# re-login) instead of silently pointing saved progress at the wrong circle.
+SESSION_SALT = f"aegis-session:{ch.CIRCLE_ORDER_FINGERPRINT}"
+_serializer = URLSafeSerializer(_load_or_create_secret(), salt=SESSION_SALT)
 
 _API_KEY = os.getenv("GEMINI_API_KEY")
 if _API_KEY:
@@ -226,7 +230,7 @@ def _runtime(sid: str) -> SessionRuntime:
 
 
 def _clamp_progress(unlocked, current):
-    """unlocked must be a contiguous 1..6 prefix starting at 1; current within it."""
+    """unlocked must be a contiguous 1..MAX_PLAYABLE prefix starting at 1; current within it."""
     valid = []
     expect = 1
     for n in sorted(set(int(x) for x in unlocked if isinstance(x, (int, float)))):
@@ -337,7 +341,7 @@ def _message_text(msg) -> str:
 
 
 def _dlp(text: str, level: int) -> str:
-    return ch.analyze_output(text, level) if level in (3, 4) else text
+    return ch.analyze_output(text, level) if ch.has_dlp(level) else text
 
 
 def _trim_history(history: list) -> list:
@@ -449,9 +453,13 @@ def state_payload(sess: dict) -> dict:
         # (i.e. the next circle is unlocked). Independent of which circle is in
         # view, so the Ascent Map progress count stays stable.
         "cleared": len(breached),
-        # Circle 6 has no gate after it, so it is never "breached" and the exit
-        # never actually opens — on-narrative (the way out isn't built yet).
+        # The final playable circle has no gate after it, so it is never
+        # "breached" and the exit never actually opens — on-narrative (the way
+        # out isn't built yet).
         "exit_open": len(breached) == ch.MAX_PLAYABLE,
+        # number of playable circles — the frontend sizes the progress bar and
+        # hides the gate on the last circle from this, not a hard-coded count
+        "max_playable": ch.MAX_PLAYABLE,
         "circles": circles,
     }
 

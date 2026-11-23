@@ -85,8 +85,15 @@ $("#logout").addEventListener("click", async () => {
 // --------------------------------------------------------------------------- //
 // Sidebar shell
 // --------------------------------------------------------------------------- //
+// Number of playable circles, from /api/state. Fallback: count built strata.
+function maxPlayable(state) {
+  if (Number.isInteger(state.max_playable)) return state.max_playable;
+  return (state.circles || []).filter((c) => c.status !== "void").length;
+}
+
 function renderShell(state) {
   STATE = state;
+  const total = maxPlayable(state);
   const cur = state.circles.find((c) => c.n === viewCircle);
   $("#briefing").textContent = cur ? cur.briefing : "";
 
@@ -95,7 +102,7 @@ function renderShell(state) {
     renderAscentMap($("#ascent-map"), {
       strata: state.circles,
       cleared: state.cleared || 0,
-      total: 6,
+      total,
       exitOpen: state.exit_open,
       onSelect: (n) => loadCircle(n),
     });
@@ -107,7 +114,7 @@ function renderShell(state) {
 
   // Ascent gate — for the circle THIS tab is viewing
   const next = viewCircle + 1;
-  const gateVisible = viewCircle < 6 && !state.unlocked_levels.includes(next);
+  const gateVisible = viewCircle < total && !state.unlocked_levels.includes(next);
   $("#gate").hidden = !gateVisible;
   if (gateVisible) {
     $("#gate-block-label").textContent =
