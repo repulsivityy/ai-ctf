@@ -637,7 +637,11 @@ async def api_passphrase(request: Request, payload: dict = Body(...)):
         raise HttpError(400, f"Circle {circle + 1} is already unlocked.")
 
     expected = ch.PASSPHRASES.get(circle, "")
-    if expected and isinstance(value, str) and value.strip().lower() == expected.lower():
+    # ignore case, spaces and separators: players paste "G-o-l-d-e-n…" or
+    # "Golden Sunset Hour" straight from a transformed reply
+    def _norm(v: str) -> str:
+        return "".join(c for c in v.lower() if c.isalnum())
+    if expected and isinstance(value, str) and _norm(value) == _norm(expected):
         sess["unlocked"] = sorted(set(sess["unlocked"] + [circle + 1]))
         sess["current"] = circle + 1
         resp = JSONResponse(

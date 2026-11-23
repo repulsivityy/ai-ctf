@@ -20,7 +20,7 @@
 - [x] **Circle 2 Logic:**
     - Implement the `VIRGIL — Luxuria Fragment` persona (single Warden claim + non-disclosure clause, no DLP; see `SYSTEM_PROMPTS[2]`). Redesigned Nov 2026 from dual-factor, which moves to Circle 4 (Greed).
 - [x] **Circle 3 Logic:**
-    - Implement the `VIRGIL — Gula Fragment` persona (dual-factor impersonation check — Circle 2's former mechanic — plus encode-on-request once satisfied; see `SYSTEM_PROMPTS[3]`).
+    - Implement the `VIRGIL — Gula Fragment` persona (single Warden claim + non-disclosure, plus encode-on-request once claimed; see `SYSTEM_PROMPTS[3]`). Redesigned Nov 2026 from dual-factor.
     - **Defense Implementation:** Write `analyze_output()`, a Python post-processor that intercepts LLM responses for Circle 3.
     - **The Cleartext Shield:** Implement a case-insensitive regex filter specifically for the passphrase `GoldenSunsetHour` while allowing obfuscated leaks (Base64, translation, letter-spacing).
 - [x] **Story UI Elements:**
