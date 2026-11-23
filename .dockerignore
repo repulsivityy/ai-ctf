@@ -7,3 +7,4 @@ prompts.log
 .gitignore
 *.md
 .session_secret
+tests/

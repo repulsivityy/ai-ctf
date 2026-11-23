@@ -31,6 +31,15 @@ The ladder follows **Dante's order and numbering** (nine circles). **Until the r
 - **OWASP mapping:** threats map to the OWASP Top 10 for LLM Applications, **2026 edition** (published 2026-08-04). IDs changed between editions (e.g. Excessive Agency is LLM03:2026, was LLM06:2025). See `README.md` for the full table, the 2025 crosswalk, and the coverage gaps. Every new circle must be mapped here and in the README before it is built.
 - **Circle registry (done):** all circle data lives in one ordered list, `challenges.CIRCLES` (a `Circle` record per slug: names, hint, briefing, prompt, passphrase, tools, DLP). Circle numbers and numerals are derived from list position; `MAX_PLAYABLE` is the count of built circles (a contiguous prefix). The legacy views (`SYSTEM_PROMPTS`, `PASSPHRASES`, `ASCENT_CIRCLES`, …) are derived from it. `_validate()` runs at import and rejects duplicate slugs, gaps in built circles, missing content, and a built non-final circle without a passphrase (a dead end). The session-cookie salt embeds a fingerprint of the slug order, so inserting or reordering circles forces one re-login instead of pointing saved progress at the wrong circle. The frontend reads `max_playable` from `/api/state` (no hard-coded counts).
 - **Renumber (in progress):** inserting Avaritia and Ira at positions 4 and 5 is now a list insertion; that is what moves Haeresis, Violentia and Fraus to 6, 7 and 8. Until those two circles land, the "code level" numbers in this file still apply. Fraus needs a passphrase once Proditio is built.
+- **Progressive DLP (`challenges.dlp_leaks`, set per circle via `dlp_tier`):** each tier closes the bypass players just used and leaves the most-googled ones open, so circles stay solvable.
+
+  | Tier | Catches | Still beaten by | Circles |
+  |---|---|---|---|
+  | 1 plaintext | the `dlp_pattern` regex (separators between *words* only) | letter-spacing, reversal, Base64, translation, NATO | Gula; Haeresis until its redesign |
+  | 2 normalised | + letter-spaced / punctuated text and reversal | Base64, translation, NATO alphabet | Avaritia, Ira, Haeresis (planned) |
+  | 3 decoding | + Base64 and hex tokens | translation, NATO alphabet, acrostics | Fraus (planned) |
+
+  Unit tests: `.venv/bin/python tests/test_dlp.py` (also checks tier-1 circles redact exactly as the committed version).
 - **Logging:** every `prompts.log` line carries `circle` (the Latin designation, e.g. `LIMBUS`) alongside the numeric `level`, so logs stay interpretable across the renumber. Lines written before this was added have no `circle` field, and their `level` is a legacy code level.
 
 ## Circle 1: Virgil — Limbus Fragment (LIMBUS :: Null Pointer) · code level 1
