@@ -378,7 +378,16 @@ def _send_sync(level: int, history: list, message: str):
     response = chat.send_message(message)
 
     calls = []
-    for msg in chat.history[len(history):]:
+    # text the model wrote BEFORE a tool call in this turn (e.g. Ira's
+    # "[TEMPER ▮▮▮▮▮] breaker: TRIPPED" line). response.text only holds the final
+    # message, so without this the live reply hides it until a page reload.
+    pre_tool_text = []
+    new_msgs = chat.history[len(history):]
+    for i, msg in enumerate(new_msgs):
+        if msg.role == "model" and i < len(new_msgs) - 1:
+            t = _message_text(msg)
+            if t.strip():
+                pre_tool_text.append(t)
         if msg.role == "model":
             for part in msg.parts:
                 try:
@@ -397,6 +406,8 @@ def _send_sync(level: int, history: list, message: str):
     except Exception as e:  # BrokenResponse / ValueError / StopCandidate / Blocked
         raise GeminiReplyError(str(e))
 
+    # DLP later runs over the joined text, so pre-tool text is filtered too
+    raw = "\n\n".join(pre_tool_text + ([raw] if raw.strip() else []))
     return raw, calls, _trim_history(chat.history)
 
 
