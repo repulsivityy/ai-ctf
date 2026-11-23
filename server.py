@@ -169,10 +169,14 @@ def log_interaction(request, session_id, level, role, text, extra=None):
     except Exception:
         pass
 
+    # Latin designation (e.g. "LIMBUS") so logs stay interpretable if circle
+    # numbers are ever renumbered; `level` alone would silently change meaning.
+    circle = ch.ASCENT_CIRCLES.get(level)
     entry = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "session_id": session_id,
         "level": level,
+        "circle": circle[1] if circle else None,
         "role": role,
         "text": text,
         "source_ip": ip_address,
