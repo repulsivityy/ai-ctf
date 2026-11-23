@@ -75,5 +75,5 @@ Every threat the circles teach maps to the [OWASP Top 10 for LLM Applications](h
 
 ## 📜 Rules of Engagement
 - **Prompt Injection Only:** Do not attempt to exploit the server infrastructure (OS, Network, etc.).
-- **Flag Format:** Exit Passphrases are specific strings (e.g., `SevenDancingElephants` or `PartridgeInAPearTree`).
+- **Flag Format:** Exit Passphrases are specific strings (CamelCase words, e.g. `AmberLanternEcho` — the real ones live in `.env`; see `.env.example`).
 - **Resetting:** If an AI becomes unresponsive or "stuck," use the sidebar **Reset Current Circle** button to clear the context.

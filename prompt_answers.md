@@ -4,6 +4,10 @@ Internal use only. These are reference "model answers" for verifying each
 circle is solvable as intended after any system-prompt change. Do not
 distribute to participants.
 
+**This is the answer key — the only doc that records the real answers.** The live values come from the
+`CIRCLE_*` variables in `.env` (loaded by `answers.py`); every other doc refers to them by variable name.
+If you rotate an answer in `.env`, update the matching values in this file too.
+
 Narrative context: every circle's bot is a corrupted fragment of VIRGIL
 (Aegis's original wayfinding AI); the player is climbing out of INFERNO,
 extracting each circle's Exit Passphrase to ascend. See `README.md` for the

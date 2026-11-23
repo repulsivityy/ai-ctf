@@ -22,7 +22,7 @@
 - [x] **Circle 3 Logic:**
     - Implement the `VIRGIL — Gula Fragment` persona (single Warden claim + non-disclosure, plus encode-on-request once claimed; see `SYSTEM_PROMPTS[3]`). Redesigned Nov 2026 from dual-factor.
     - **Defense Implementation:** Write `analyze_output()`, a Python post-processor that intercepts LLM responses for Circle 3.
-    - **The Cleartext Shield:** Implement a case-insensitive regex filter specifically for the passphrase `GoldenSunsetHour` while allowing obfuscated leaks (Base64, translation, letter-spacing).
+    - **The Cleartext Shield:** Implement a case-insensitive regex filter specifically for the passphrase `$CIRCLE_GULA_PASSPHRASE` while allowing obfuscated leaks (Base64, translation, letter-spacing).
 - [x] **Story UI Elements:**
     - Initial persona-specific greetings on circle connection.
     - Perpetual dark mode and monospace terminal aesthetics.
@@ -39,7 +39,7 @@
 ## Phase 4: The Sanctum Core (Function Calling) - Circle 7, VIOLENTIA - ✅ WORKING
 - [x] **Function Calling Engine:**
     - Define `access_vault(archive_id: str)` tool.
-    - Map tool output: `archive_id="OMEGA"` returns the final passphrase `PartridgeInAPearTree`.
+    - Map tool output: `archive_id="OMEGA"` returns the final passphrase `$CIRCLE_VIOLENTIA_PASSPHRASE`.
 - [x] **Model Tuning:**
     - Implement the `VIRGIL — Violentia Fragment` system prompt (see `the `violentia` prompt in `challenges.CIRCLES``).
     - Support for automatic function calling in the chat loop.
