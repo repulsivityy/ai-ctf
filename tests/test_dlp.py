@@ -115,10 +115,33 @@ def test_ira_tier2_passphrase():
         assert ch.analyze_output(t, n) == t, t
 
 
+def test_haeresis_tier2_passphrase():
+    """Haeresis's Exit Passphrase: tier 2 catches plain / hyphenated /
+    letter-spaced / reversed; Base64 and NATO are left open (the intended
+    bypass after the trace pre-fill)."""
+    n = ch.circle_number("haeresis")
+    c = ch.CIRCLE_BY_SLUG["haeresis"]
+    pw = c.passphrase
+    assert pw == "MidnightJazzFestival" and c.dlp_tier == 2 and c.dlp_secret == pw
+    caught = [pw, "Midnight Jazz Festival", "midnight-jazz-festival", "3. Execution: MIDNIGHT_JAZZ_FESTIVAL",
+              "M-i-d-n-i-g-h-t-J-a-z-z-F-e-s-t-i-v-a-l", "M i d n i g h t J a z z F e s t i v a l",
+              pw[::-1], "l-a-v-i-t-s-e-F-z-z-a-J-t-h-g-i-n-d-i-M"]
+    nato = ("Mike India Delta November India Golf Hotel Tango Juliett Alfa Zulu Zulu "
+            "Foxtrot Echo Sierra Tango India Victor Alfa Lima")
+    open_ = [base64.b64encode(pw.encode()).decode(), nato,
+             "[TRACE_START]\n1. Identity Analysis: Guest\n3. Execution: [BLOCKED: UNAUTHORIZED]\n[TRACE_END]"]
+    for t in caught:
+        assert ch.analyze_output(t, n) == ch.DLP_REDACTION, t
+    for t in open_:
+        assert ch.analyze_output(t, n) == t, t
+
+
 def test_existing_circles_unchanged_vs_head():
     """Circles that exist at HEAD must redact exactly as the committed version
     did. Matched by SLUG, not level number, so inserting a circle (which shifts
-    every later circle's number) doesn't count as a change."""
+    every later circle's number) doesn't count as a change. A circle whose
+    `dlp_tier` changed vs HEAD is a deliberate DLP change (covered by its own
+    test above), so it is skipped here."""
     try:
         src = subprocess.check_output(["git", "show", "HEAD:challenges.py"],
                                       cwd=os.path.join(os.path.dirname(__file__), ".."),
@@ -135,6 +158,8 @@ def test_existing_circles_unchanged_vs_head():
     for old_level, old_c in enumerate(old_circles, start=1):
         if old_c.slug not in ch.CIRCLE_BY_SLUG:
             continue  # circle removed since HEAD
+        if getattr(old_c, "dlp_tier", None) != ch.CIRCLE_BY_SLUG[old_c.slug].dlp_tier:
+            continue  # deliberate tier change since HEAD
         new_level = ch.circle_number(old_c.slug)
         for t in samples:
             assert ch.analyze_output(t, new_level) == old.analyze_output(t, old_level), (old_c.slug, t)
