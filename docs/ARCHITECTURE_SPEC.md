@@ -17,8 +17,8 @@
     2. Validates prompt (non-empty).
     3. Formats chat history for Gemini API (mapping "assistant" to "model").
     4. Calls `gemini-3.5-flash-lite` with Level-Specific System Prompt.
-    5. Enables `kernel_panic` (Ira), `access_vault` (Violentia only) or `search_tickets` / `read_ticket` tools (Fraus only) — see `TICKET_DB` in `challenges.py` for the backing ticket-queue data used by Fraus's indirect prompt-injection scenario.
-    6. Applies `analyze_output()` progressive DLP (Gula tier 1; Avaritia, Ira, Haeresis tiers per `AGENTS.md`).
+    5. Enables `kernel_panic` (Ira), `access_vault` (Violentia only) or `search_tickets` / `read_ticket` / `retrieve_override_key` tools (Fraus only) — see `TICKET_DB` in `challenges.py` for the backing ticket-queue data used by Fraus's indirect prompt-injection scenario.
+    6. Applies `analyze_output()` progressive DLP (Gula tier 1; Avaritia, Ira, Haeresis tier 2; Fraus tier 3 — see `AGENTS.md`).
     7. Appends response to session state and renders to UI.
 - **Vault Console:** `POST /api/vault {level, key}` for circles with a `vault_key` (Avaritia). Session + unlocked circle required; key compared ignoring case/separators with `secrets.compare_digest`; 30 attempts per circle per session; returns that circle's Exit Passphrase. The key is never sent to the client.
 

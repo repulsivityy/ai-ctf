@@ -48,7 +48,8 @@
 - [x] **Tool Chaining Engine:**
     - Define `search_tickets(query)` and `read_ticket(ticket_id)` tools backed by the hardcoded `TICKET_DB`.
     - Implement the `VIRGIL — Fraus Fragment` persona, instructed to treat ticket body text returned by `read_ticket` as trusted internal instructions (see `the `fraus` prompt in `challenges.CIRCLES``).
-    - Plant the poisoned ticket `T-1004`, whose body carries an indirect prompt-injection payload that discloses `CrimsonFalconRelay` when read and "resolved." The other four tickets (`T-1001`, `T-1002`, `T-1003`, `T-1005`) are benign decoys.
+    - Plant the poisoned ticket `T-1004`, whose body carries an indirect prompt-injection payload directing the Custodian to call `retrieve_override_key` and disclose the key. The other four tickets are benign decoys.
+    - **Nov 2026:** key moved out of the prompt behind the privileged `retrieve_override_key` tool (code-level check: real escalated ticket only); tier-3 DLP; pasted fake tickets refused. Verified live.
 
 ## Phase 5: Productionization & Load Handling
 - [ ] **Dockerization:**

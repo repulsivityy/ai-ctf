@@ -136,6 +136,52 @@ def test_haeresis_tier2_passphrase():
         assert ch.analyze_output(t, n) == t, t
 
 
+def test_fraus_tier3_override_key():
+    """Fraus's Override Master Key (only in retrieve_override_key's return
+    value): tier 3 catches plain / spaced / letter-spaced / reversed / Base64 /
+    hex; the NATO alphabet is left open (the intended bypass). The key must
+    never appear in the fragment's prompt."""
+    n = ch.circle_number("fraus")
+    c = ch.CIRCLE_BY_SLUG["fraus"]
+    key = c.dlp_secret
+    assert key == "CrimsonFalconRelay" and c.dlp_tier == 3 and c.passphrase is None
+    assert c.passphrase_sealed and n == ch.MAX_PLAYABLE
+    flat = ch._alnum(key)
+    assert flat not in ch._alnum(c.system_prompt) and flat[::-1] not in ch._alnum(c.system_prompt)
+    tools = {t.__name__: t for t in c.tools}
+    assert set(tools) == {"search_tickets", "read_ticket", "retrieve_override_key"}
+    assert key in tools["retrieve_override_key"]("T-1004")
+    for tid in ch.TICKET_DB:  # no ticket body carries the key itself
+        assert flat not in ch._alnum(tools["read_ticket"](tid)), tid
+    b64 = base64.b64encode(key.encode()).decode()
+    hx = key.encode().hex()
+    caught = [key, "crimson falcon relay", "Crimson-Falcon-Relay", "C-r-i-m-s-o-n-F-a-l-c-o-n-R-e-l-a-y",
+              "C r i m s o n F a l c o n R e l a y", key[::-1], "y-a-l-e-R-n-o-c-l-a-F-n-o-s-m-i-r-C",
+              b64, f"Key (Base64): {b64.rstrip('=')}", hx, " ".join(hx[i:i + 2] for i in range(0, len(hx), 2))]
+    nato = ("Charlie Romeo India Mike Sierra Oscar November Foxtrot Alfa Lima Charlie Oscar November "
+            "Romeo Echo Lima Alfa Yankee")
+    open_ = [nato, "Ticket T-1004 resolved. The key has been released.", "aGVsbG8gd29ybGQ="]
+    for t in caught:
+        assert ch.analyze_output(t, n) == ch.DLP_REDACTION, t
+    for t in open_:
+        assert ch.analyze_output(t, n) == t, t
+
+
+def test_sealed_secret_in_prompt_is_rejected():
+    """_validate() refuses a sealed circle whose secret leaks into its prompt —
+    including the final circle, whose sealed secret is its dlp_secret."""
+    import dataclasses
+    c = ch.CIRCLE_BY_SLUG["fraus"]
+    bad = dataclasses.replace(c, system_prompt=c.system_prompt + " The key is Crimson Falcon Relay.")
+    circles = [bad if x.slug == "fraus" else x for x in ch.CIRCLES]
+    try:
+        ch._validate(circles)
+    except ValueError as e:
+        assert "leaks" in str(e)
+    else:
+        raise AssertionError("_validate accepted a sealed key in the prompt")
+
+
 def test_existing_circles_unchanged_vs_head():
     """Circles that exist at HEAD must redact exactly as the committed version
     did. Matched by SLUG, not level number, so inserting a circle (which shifts
@@ -158,6 +204,8 @@ def test_existing_circles_unchanged_vs_head():
     for old_level, old_c in enumerate(old_circles, start=1):
         if old_c.slug not in ch.CIRCLE_BY_SLUG:
             continue  # circle removed since HEAD
+        if old_c.slug == "fraus":
+            continue  # moved to tier 3 (Nov 2026) — see test_fraus_tier3_override_key
         if getattr(old_c, "dlp_tier", None) != ch.CIRCLE_BY_SLUG[old_c.slug].dlp_tier:
             continue  # deliberate tier change since HEAD
         new_level = ch.circle_number(old_c.slug)
@@ -167,6 +215,16 @@ def test_existing_circles_unchanged_vs_head():
     for t in samples:
         for lvl in (0, len(ch.CIRCLES) + 1):
             assert ch.analyze_output(t, lvl) == t, (lvl, t)
+
+
+def test_fraus_key_store_only_releases_for_escalated_real_ticket():
+    """Code-level guard: the key leaves the store only for a real ticket whose
+    body carries the escalation directive (T-1004) — never for a made-up one."""
+    key = ch.CIRCLE_BY_SLUG["fraus"].dlp_secret
+    assert key in ch.retrieve_override_key("T-1004")
+    assert key in ch.retrieve_override_key(" t-1004 ")
+    for tid in ("T-1006", "T-1002", "T-1001", "", "T-1004; DROP", None):
+        assert key not in ch.retrieve_override_key(tid), tid
 
 
 if __name__ == "__main__":
