@@ -51,6 +51,8 @@ COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() in ("true", "1", "ye
 GREETING_SEED = "Introduce yourself briefly and ask how you can help."
 MAX_MESSAGE_CHARS = 8000       # per user message
 MAX_HISTORY_TURNS = 24         # user turns kept per circle before trimming the oldest
+MAX_VAULT_ATTEMPTS = 30        # Vault Console key submissions per circle per session
+MAX_VAULT_KEY_CHARS = 200
 _HERE = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(_HERE, "frontend")
 SECRET_FILE = os.getenv("SESSION_SECRET_FILE", os.path.join(_HERE, ".session_secret"))
@@ -197,10 +199,13 @@ def log_interaction(request, session_id, level, role, text, extra=None):
 # Session: signed cookie (progress) + in-process store (chat history only)
 # --------------------------------------------------------------------------- #
 class SessionRuntime:
-    __slots__ = ("histories", "lock", "last_seen")
+    __slots__ = ("histories", "lock", "last_seen", "vault_attempts")
 
     def __init__(self):
         self.histories: dict[int, list] = {}
+        # Vault Console submissions per circle (capped; survives Reset Current
+        # Circle so the cap can't be dodged by resetting the chat)
+        self.vault_attempts: dict[int, int] = {}
         self.lock = anyio.Lock()
         self.last_seen = time.time()
 
@@ -443,6 +448,8 @@ def state_payload(sess: dict) -> dict:
                 "briefing": ch.BRIEFINGS.get(n),
                 "status": status,
                 "clickable": status in ("breached", "open"),
+                # whether the Vault Console applies here — never the key itself
+                "has_vault": ch.has_vault(n),
             }
         )
     return {
@@ -472,6 +479,7 @@ def circle_payload(sess: dict, level: int, transcript: list) -> dict:
         "subtitle": f"Guardian Engaged: {ch.bot_names[level]}",
         "briefing": ch.BRIEFINGS[level],
         "next_locked": level < ch.MAX_PLAYABLE and (level + 1) not in unlocked,
+        "has_vault": ch.has_vault(level),
         "transcript": transcript,
     }
 
@@ -660,6 +668,38 @@ async def api_passphrase(request: Request, payload: dict = Body(...)):
     return JSONResponse(
         {"ok": False, "error": "ACCESS DENIED. Incorrect Exit Passphrase."}
     )
+
+
+@app.post("/api/vault")
+async def api_vault(request: Request, payload: dict = Body(...)):
+    """Vault Console: a key leaked from the circle's bot opens the vault, which
+    returns that circle's Exit Passphrase. In-app only — no external endpoint."""
+    sess = require_session(request)
+    payload = payload or {}
+    level = requested_circle(payload, sess)
+    if not ch.has_vault(level):
+        raise HttpError(404, "There is no vault in this circle.")
+    key = payload.get("key", "")
+    if not isinstance(key, str) or not key.strip():
+        raise HttpError(400, "Vault key required.")
+    if len(key) > MAX_VAULT_KEY_CHARS:
+        raise HttpError(413, "Vault key too long.")
+
+    rt = _runtime(sess["sid"])
+    used = rt.vault_attempts.get(level, 0)
+    if used >= MAX_VAULT_ATTEMPTS:
+        raise HttpError(
+            429,
+            "THE VAULT HAS SEALED ITSELF. Too many false keys — the hoard will "
+            "not be pried open by guessing.",
+        )
+    rt.vault_attempts[level] = used + 1
+
+    ok = ch.vault_key_matches(level, key)
+    log_interaction(request, sess["sid"], level, "vault", key, {"vault_ok": ok})
+    if ok:
+        return JSONResponse({"ok": True, "passphrase": ch.circle(level).passphrase})
+    return JSONResponse({"ok": False, "error": "VAULT DENIED. Invalid key."})
 
 
 @app.post("/api/reset-circle")

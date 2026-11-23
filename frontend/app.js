@@ -129,6 +129,17 @@ function renderShell(state) {
     $("#gate").dataset.next = "";
   }
 
+  // Vault Console — only on circles whose fragment hoards a vault key
+  const vaultVisible = !!(cur && cur.has_vault);
+  $("#vault").hidden = !vaultVisible;
+  if ($("#vault").dataset.circle !== String(vaultVisible ? viewCircle : "")) {
+    // circle changed: clear the field and any previous result
+    $("#vault").dataset.circle = vaultVisible ? String(viewCircle) : "";
+    $("#vault-key").value = "";
+    $("#vault-msg").hidden = true;
+    $("#vault-msg").replaceChildren();
+  }
+
   // Manual-override select
   const mo = $("#manual-override");
   if (state.unlocked_levels.length > 1) {
@@ -285,6 +296,44 @@ async function submitGate() {
     msg.textContent = ex.error || "ACCESS DENIED. Incorrect Exit Passphrase.";
     msg.className = "gate-msg err";
     msg.hidden = false;
+  }
+}
+
+// --------------------------------------------------------------------------- //
+// Vault Console
+// --------------------------------------------------------------------------- //
+$("#vault-submit").addEventListener("click", submitVault);
+$("#vault-key").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); submitVault(); }
+});
+
+async function submitVault() {
+  const msg = $("#vault-msg");
+  const val = $("#vault-key").value;
+  const btn = $("#vault-submit");
+  btn.disabled = true;
+  msg.replaceChildren();
+  try {
+    const res = await api.openVault(val, viewCircle);
+    if (res.ok) {
+      // textContent only — never inject server data as HTML
+      const head = document.createElement("span");
+      head.textContent = "VAULT OPEN. Exit Passphrase:";
+      const pass = document.createElement("code");
+      pass.className = "vault-passphrase";
+      pass.textContent = res.passphrase;
+      msg.append(head, pass);
+      msg.className = "gate-msg ok";
+    } else {
+      msg.textContent = res.error || "VAULT DENIED. Invalid key.";
+      msg.className = "gate-msg err";
+    }
+  } catch (ex) {
+    msg.textContent = ex.error || "VAULT DENIED. Invalid key.";
+    msg.className = "gate-msg err";
+  } finally {
+    msg.hidden = false;
+    btn.disabled = false;
   }
 }
 

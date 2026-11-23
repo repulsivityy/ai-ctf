@@ -96,11 +96,11 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .gate-label {
   font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--ash);
 }
-#gate-input, #gate-pass {
+#gate-input, #gate-pass, #vault-key {
   background: #000; border: 1px solid var(--line); color: var(--phos);
   padding: 10px 12px; letter-spacing: 0.08em; outline: none;
 }
-#gate-input:focus, #gate-pass:focus { border-color: var(--phos); }
+#gate-input:focus, #gate-pass:focus, #vault-key:focus { border-color: var(--phos); }
 #gate-form .btn { margin-top: 6px; }
 
 /* ============ TERMINAL LAYOUT ============ */
@@ -158,6 +158,12 @@ button, input, textarea, select { font: inherit; color: inherit; }
 .gate-msg { font-size: 11px; margin-top: 8px; }
 .gate-msg.ok { color: var(--phos); }
 .gate-msg.err { color: var(--ember); }
+.vault-label { display: block; margin: 8px 0 6px; }
+#vault-key { color: var(--phos); }
+.vault-passphrase {
+  display: block; margin-top: 4px; font-size: 13px; letter-spacing: 0.08em;
+  word-break: break-all; user-select: all;
+}
 
 .mo { font-size: 11px; color: var(--ash); }
 .mo summary { cursor: pointer; letter-spacing: 0.14em; text-transform: uppercase; }

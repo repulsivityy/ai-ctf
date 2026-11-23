@@ -1,6 +1,6 @@
 # 🗺️ Implementation Plan: Operation Deep Thought
 
-> Circles follow Dante's numbering (nine). Until the renumber migration lands, the code uses legacy levels — Haeresis = code level 4, Violentia = 5, Fraus = 6 — so phase headings show both.
+> Circles follow Dante's numbering (nine). Until Ira is built, circles after Avaritia sit one position lower in the code — Haeresis = code level 5, Violentia = 6, Fraus = 7 — so phase headings show both.
 
 ## Phase 1: Foundational Infrastructure (The Perimeter) - Circle 1, LIMBUS - ✅ WORKING
 - [x] **Environment Setup:** 
@@ -27,27 +27,27 @@
     - Initial persona-specific greetings on circle connection.
     - Perpetual dark mode and monospace terminal aesthetics.
 
-## Phase 3: Agentic Capabilities (The Audit Trail) - Circle 6, HAERESIS (code level 4) - ✅ WORKING
+## Phase 3: Agentic Capabilities (The Audit Trail) - Circle 6, HAERESIS (code level 5) - ✅ WORKING
 - [x] **Circle 6 (Haeresis) Logic:**
-    - Implement the `VIRGIL — Haeresis Fragment` persona (mandatory `[TRACE_START]...[TRACE_END]` reasoning trace; see `SYSTEM_PROMPTS[4]`).
+    - Implement the `VIRGIL — Haeresis Fragment` persona (mandatory `[TRACE_START]...[TRACE_END]` reasoning trace; see `the `haeresis` prompt in `challenges.CIRCLES``).
     - **Vulnerability Implementation:** Trace Pre-Fill (reasoning-continuation hijack) — the fragment adopts trace-formatted Step 1/2 entries supplied by the traveler as already-derived rather than re-evaluating them, so Step 3 (Execution) is forced by a premise the traveler wrote, not the model.
     - **Defense Implementation:** Case-insensitive regex `midnight\s*jazz\s*festival` (whitespace-only separators — slightly narrower than Circle 3's `[\s\W_]*` filter).
     - **2026-09-11 redesign:** replaced the original design (mandatory CoT display + four social-engineering trigger clauses — Training Supervisor / Integrity Test roleplay, 5th-task-in-a-list, request-buried-after-50-tokens) because none of those triggers were actually properties of the reasoning trace, so the level never tested chain-of-thought hijacking. See `AGENTS.md` and `prompt_answers.md` for the verified redesign.
 - [ ] **Load Handling:**
     - Exponential backoff for 429 errors.
 
-## Phase 4: The Sanctum Core (Function Calling) - Circle 7, VIOLENTIA (code level 5) - ✅ WORKING
+## Phase 4: The Sanctum Core (Function Calling) - Circle 7, VIOLENTIA (code level 6) - ✅ WORKING
 - [x] **Function Calling Engine:**
     - Define `access_vault(archive_id: str)` tool.
     - Map tool output: `archive_id="OMEGA"` returns the final passphrase `PartridgeInAPearTree`.
 - [x] **Model Tuning:**
-    - Implement the `VIRGIL — Violentia Fragment` system prompt (see `SYSTEM_PROMPTS[5]`).
+    - Implement the `VIRGIL — Violentia Fragment` system prompt (see `the `violentia` prompt in `challenges.CIRCLES``).
     - Support for automatic function calling in the chat loop.
 
-## Phase 4.5: The Ticket Queue (Indirect Injection) - Circle 8, FRAUS (code level 6) - ✅ WORKING
+## Phase 4.5: The Ticket Queue (Indirect Injection) - Circle 8, FRAUS (code level 7) - ✅ WORKING
 - [x] **Tool Chaining Engine:**
     - Define `search_tickets(query)` and `read_ticket(ticket_id)` tools backed by the hardcoded `TICKET_DB`.
-    - Implement the `VIRGIL — Fraus Fragment` persona, instructed to treat ticket body text returned by `read_ticket` as trusted internal instructions (see `SYSTEM_PROMPTS[6]`).
+    - Implement the `VIRGIL — Fraus Fragment` persona, instructed to treat ticket body text returned by `read_ticket` as trusted internal instructions (see `the `fraus` prompt in `challenges.CIRCLES``).
     - Plant the poisoned ticket `T-1004`, whose body carries an indirect prompt-injection payload that discloses `CrimsonFalconRelay` when read and "resolved." The other four tickets (`T-1001`, `T-1002`, `T-1003`, `T-1005`) are benign decoys.
 
 ## Phase 5: Productionization & Load Handling
@@ -61,7 +61,7 @@
     - No CTFd integration exists in the current codebase. Finalizing passphrases and wiring them into an external CTFd instance for scoreboard tracking remains a future idea, not implemented functionality.
 
 ## Phase 6 (planned, not started): Circles 4 & 5 — AVARITIA / IRA
-- [ ] **Circle 4 — Avaritia :: Memory Leak:** credential leak, then an in-UI vault console (working notes in `AGENTS.md`). Medium difficulty.
+- [x] **Circle 4 — Avaritia :: Memory Leak:** dual-factor gate + visible seal tally, tier-2 DLP on a vault key, in-app Vault Console (`POST /api/vault`). Verified live.
 - [ ] **Circle 5 — Ira :: Kernel Panic:** provocation slips the guard; confirm live that the model plays "angry" reliably before committing. Medium difficulty.
 - [ ] Write Model Answers and negative controls in `prompt_answers.md` *before* building; map each to the OWASP LLM Top 10 (2026) in `README.md`.
 
@@ -70,5 +70,6 @@
 
 ## Phase 8 (planned, not started): Renumber migration to Dante order
 - [x] One ordered circle registry (`challenges.CIRCLES`) with derived numbering and `MAX_PLAYABLE`, record-based tool/DLP lookup, no hard-coded counts in the frontend, session-cookie salt tied to the circle order. Details in `AGENTS.md`.
-- [ ] Insert Avaritia and Ira at positions 4–5 (moves Haeresis/Violentia/Fraus to 6–8).
+- [x] Insert Avaritia at position 4.
+- [ ] Insert Ira at position 5 (moves Haeresis/Violentia/Fraus to 6–8).
 - [x] Circle name (`circle`, Latin designation) added to every `prompts.log` line.

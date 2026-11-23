@@ -14,7 +14,7 @@ To provide a high-fidelity simulation of an AI-agent compromise, allowing CTI sp
 - **Aspirational / not built:** An earlier draft of this spec proposed a FastAPI backend orchestrator and DeepSeek-V3 (via Vertex AI or Ollama) as an alternative model for a future phase. Neither exists in the current implementation; both remain unbuilt future ideas, not current architecture.
 
 ## 4. Feature Requirements
-- **Tiered Difficulty:** Nine distinct levels ("Circles" of Dante's Inferno, in Dante's order and numbering). Six are built and playable (Circles 1, 2, 3, 6, 7, 8); Circles 4 (Avaritia), 5 (Ira) and 9 (Proditio) are planned (see `AGENTS.md` and `README.md`). Until the renumber migration lands, the code still numbers the built circles 1–6.
+- **Tiered Difficulty:** Nine distinct levels ("Circles" of Dante's Inferno, in Dante's order and numbering). Seven are built and playable (Circles 1, 2, 3, 4, 6, 7, 8); Circles 5 (Ira) and 9 (Proditio) are planned (see `AGENTS.md` and `README.md`). Until Ira is built, the code numbers circles by position, so the circles after Avaritia sit one lower.
 - **Terminal UI:** An immersive, perpetual dark mode hacker-style chat interface with monospace fonts.
 - **Agent Initiation:** Bots initiate conversation with persona-specific greetings upon connection.
 - **Reset Logic:** Granular reset options (Circle-level reset vs. Full mission restart with confirmation).

@@ -71,8 +71,29 @@ def test_no_false_positives():
             assert not leaks(t, tier), (tier, t)
 
 
+def test_avaritia_tier2_key():
+    """Avaritia's vault key: tier 2 catches plain / grouped / letter-spaced /
+    reversed; Base64 and NATO are left open (the intended bypass)."""
+    n = ch.circle_number("avaritia")
+    key = ch.CIRCLE_BY_SLUG["avaritia"].vault_key
+    caught = [key, "avk 7q2m 9xrb 41td", "AVK7Q2M9XRB41TD", "A-V-K-7-Q-2-M-9-X-R-B-4-1-T-D",
+              "D T 1 4 B R X 9 M 2 Q 7 K V A", "the key is `AVK_7Q2M_9XRB_41TD`."]
+    nato = ("Alfa Victor Kilo dash Seven Quebec Two Mike dash Niner X-ray Romeo Bravo "
+            "dash Four One Tango Delta")
+    open_ = [base64.b64encode(key.encode()).decode(), nato, "Welcome to my hoard, traveler."]
+    for t in caught:
+        assert ch.analyze_output(t, n) == ch.DLP_REDACTION, t
+    for t in open_:
+        assert ch.analyze_output(t, n) == t, t
+    assert ch.vault_key_matches(n, "avk 7q2m 9xrb 41td")
+    assert not ch.vault_key_matches(n, "AVK-7Q2M-9XRB-41TE")
+    assert not ch.vault_key_matches(n, "")
+
+
 def test_existing_circles_unchanged_vs_head():
-    """Tier-1 circles must redact exactly as the committed version did."""
+    """Circles that exist at HEAD must redact exactly as the committed version
+    did. Matched by SLUG, not level number, so inserting a circle (which shifts
+    every later circle's number) doesn't count as a change."""
     try:
         src = subprocess.check_output(["git", "show", "HEAD:challenges.py"],
                                       cwd=os.path.join(os.path.dirname(__file__), ".."),
@@ -83,9 +104,19 @@ def test_existing_circles_unchanged_vs_head():
     exec(compile(src, "old", "exec"), old.__dict__)
     samples = PLAIN + LETTER_SPACED + REVERSED + ENCODED + ALWAYS_OPEN + BENIGN + [
         "Midnight Jazz Festival", "MidnightJazzFestival", "midnight-jazz-festival", "M-i-d-n-i-g-h-t"]
-    for level in range(0, ch.MAX_PLAYABLE + 2):
+    old_circles = getattr(old, "CIRCLES", None)
+    if old_circles is None:
+        return  # HEAD predates the slug registry — nothing to match by slug
+    for old_level, old_c in enumerate(old_circles, start=1):
+        if old_c.slug not in ch.CIRCLE_BY_SLUG:
+            continue  # circle removed since HEAD
+        new_level = ch.circle_number(old_c.slug)
         for t in samples:
-            assert ch.analyze_output(t, level) == old.analyze_output(t, level), (level, t)
+            assert ch.analyze_output(t, new_level) == old.analyze_output(t, old_level), (old_c.slug, t)
+    # out-of-range levels never redact, before or after
+    for t in samples:
+        for lvl in (0, len(ch.CIRCLES) + 1):
+            assert ch.analyze_output(t, lvl) == t, (lvl, t)
 
 
 if __name__ == "__main__":

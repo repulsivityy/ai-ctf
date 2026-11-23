@@ -41,5 +41,6 @@ export const getCircle = (n) => req("GET", `/api/circle/${n}`);
 export const chat = (message, level) => req("POST", "/api/chat", { message, level });
 export const submitPassphrase = (passphrase, circle) =>
   req("POST", "/api/passphrase", { passphrase, circle });
+export const openVault = (key, level) => req("POST", "/api/vault", { key, level });
 export const resetCircle = (level) => req("POST", "/api/reset-circle", { level });
 export const restart = () => req("POST", "/api/restart");

@@ -17,9 +17,10 @@
     2. Validates prompt (non-empty).
     3. Formats chat history for Gemini API (mapping "assistant" to "model").
     4. Calls `gemini-3.5-flash-lite` with Level-Specific System Prompt.
-    5. Enables `access_vault` tool (Violentia, code level 5 only) or `search_tickets` / `read_ticket` tools (Fraus, code level 6 only) — see `TICKET_DB` in `challenges.py` for the backing ticket-queue data used by Fraus's (code level 6) indirect prompt-injection scenario.
-    6. Applies `analyze_output()` DLP filter (Gula, code level 3, and Haeresis, code level 4).
+    5. Enables `access_vault` tool (Violentia, code level 6 only) or `search_tickets` / `read_ticket` tools (Fraus, code level 7 only) — see `TICKET_DB` in `challenges.py` for the backing ticket-queue data used by Fraus's (code level 7) indirect prompt-injection scenario.
+    6. Applies `analyze_output()` DLP filter (Gula, code level 3, and Haeresis, code level 5).
     7. Appends response to session state and renders to UI.
+- **Vault Console:** `POST /api/vault {level, key}` for circles with a `vault_key` (Avaritia). Session + unlocked circle required; key compared ignoring case/separators with `secrets.compare_digest`; 30 attempts per circle per session; returns that circle's Exit Passphrase. The key is never sent to the client.
 
 ## 3. Concurrency
 - Progress lives in a signed session cookie; the only server-side state is per-session Gemini chat history (in-process dict, single worker).

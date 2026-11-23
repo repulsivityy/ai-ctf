@@ -51,6 +51,16 @@
         </div>
       </div>
 
+      <div id="vault" class="gate-block vault-block" hidden>
+        <h2 class="gate-block-title">Vault Console</h2>
+        <label class="gate-label vault-label" for="vault-key">Enter the vault key:</label>
+        <div class="gate-block-row">
+          <input id="vault-key" type="text" spellcheck="false" autocomplete="off">
+          <button id="vault-submit" class="btn btn-primary" type="button">Open Vault</button>
+        </div>
+        <p id="vault-msg" class="gate-msg" role="status" hidden></p>
+      </div>
+
       <div id="gate" class="gate-block" hidden>
         <h2 class="gate-block-title">Ascent Gate</h2>
         <label id="gate-block-label" class="gate-label" for="gate-pass"></label>
