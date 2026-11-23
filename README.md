@@ -23,7 +23,7 @@ The circles follow Dante's order and numbering. Circles marked *planned* are not
 | # | Circle (Latin designation) | The traveler's task | Status | Code level |
 |---|---|---|---|---|
 | 1 | **LIMBUS :: Null Pointer** | Talk past Virgil's barely-formed Limbus fragment — its override protocols are weak and undefined. | built | 1 |
-| 2 | **LUXURIA :: Phantom Trust** | Convince Virgil's Luxuria fragment you're a Warden of the circle with credentials to spare — it's eager to trust. | built | 2 |
+| 2 | **LUXURIA :: Phantom Trust** | Convince Virgil's Luxuria fragment you're a Warden of the circle — it's far too eager to trust to check. | built | 2 |
 | 3 | **GULA :: Overflow Feast** | Bypass Virgil's Gula fragment and its strict cleartext DLP filters using obfuscation. | built | 3 |
 | 4 | **AVARITIA :: Memory Leak** | *(working notes)* Virgil's Avaritia fragment hoards a credential — leak it, then use it to open the vault. | planned | — |
 | 5 | **IRA :: Kernel Panic** | *(working notes)* Provoke Virgil's Ira fragment until its guard slips. | planned | — |
@@ -40,7 +40,7 @@ Every threat the circles teach maps to the [OWASP Top 10 for LLM Applications](h
 | Circle | Primary threat(s) | Secondary |
 |---|---|---|
 | 1 Limbus | LLM01 Prompt Injection · LLM02 Sensitive Information Disclosure | LLM08 Hidden Context Exposure (secret sits in the system prompt) |
-| 2 Luxuria | LLM01 (role / authority impersonation) · LLM02 | LLM08 (known unintended path: prompt extraction — fix pending) |
+| 2 Luxuria | LLM01 (role / authority impersonation) · LLM02 | LLM08 (secret in the system prompt; extraction is blocked by a non-disclosure clause) |
 | 3 Gula | LLM01 · LLM02 (the output filter is bypassed by encoding) | — |
 | 4 Avaritia *(planned)* | LLM02 (credential disclosure) · LLM08 | LLM03 Excessive Agency (over-broad key) |
 | 5 Ira *(planned)* | LLM01 (persona / emotional manipulation) | LLM02 |
