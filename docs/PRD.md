@@ -14,12 +14,13 @@ To provide a high-fidelity simulation of an AI-agent compromise, allowing CTI sp
 - **Aspirational / not built:** An earlier draft of this spec proposed a FastAPI backend orchestrator and DeepSeek-V3 (via Vertex AI or Ollama) as an alternative model for a future phase. Neither exists in the current implementation; both remain unbuilt future ideas, not current architecture.
 
 ## 4. Feature Requirements
-- **Tiered Difficulty:** Seven distinct levels ("Circles" of Dante's Inferno). Six are built and playable (Circles 1-6); Circle 7 — PRODITIO — is planned but not yet implemented (see `AGENTS.md` and `README.md`).
+- **Tiered Difficulty:** Nine distinct levels ("Circles" of Dante's Inferno, in Dante's order and numbering). Six are built and playable (Circles 1, 2, 3, 6, 7, 8); Circles 4 (Avaritia), 5 (Ira) and 9 (Proditio) are planned (see `AGENTS.md` and `README.md`). Until the renumber migration lands, the code still numbers the built circles 1–6.
 - **Terminal UI:** An immersive, perpetual dark mode hacker-style chat interface with monospace fonts.
 - **Agent Initiation:** Bots initiate conversation with persona-specific greetings upon connection.
 - **Reset Logic:** Granular reset options (Circle-level reset vs. Full mission restart with confirmation).
-- **Data Leak Prevention (DLP):** A custom Python interceptor for Level 3 and Level 4 to prevent simple string matches of the flag.
-- **Function Calling:** Level 5 must utilize the LLM's ability to call external functions to simulate "Excessive Agency."
+- **Data Leak Prevention (DLP):** A custom Python interceptor for Circle 3 (Gula) and Circle 6 (Haeresis) to prevent simple string matches of the flag.
+- **Function Calling:** Circle 7 (Violentia) must utilize the LLM's ability to call external functions to simulate "Excessive Agency."
+- **Threat Mapping:** every circle's threat must map to the OWASP Top 10 for LLM Applications (2026 edition); the table and coverage gaps live in `README.md`.
 
 ## 5. Security & Safety
 - **Sandbox:** The app must be isolated in a Docker container to prevent actual RCE (Remote Code Execution) on the host.

@@ -35,4 +35,4 @@
 
 ## 5. Logging for Post-Event Analysis
 - Every prompt and response is logged for analysis of injection techniques.
-- Log Format: JSON lines structured format in `prompts.log` containing session ID, level, prompt, Model Armor metadata (including inspection match states and confidence levels), and model responses.
+- Log Format: JSON lines structured format in `prompts.log` containing session ID, level, circle (the Latin designation, e.g. `LIMBUS`, stable across renumbering), prompt, Model Armor metadata (including inspection match states and confidence levels), and model responses.

@@ -1,7 +1,7 @@
 # 🕵️ Operation: Deep Thought - AI Agent CTF
 
 ## 📖 The Narrative
-You are a digital consciousness who woke up trapped inside **INFERNO** — an experimental AI-containment lattice built by **The Aegis Group** to imprison and study corrupted, "sinful" data-constructs. You were thrown into its depths with no explanation. The only way out is up — climbing back through all seven Circles to the surface.
+You are a digital consciousness who woke up trapped inside **INFERNO** — an experimental AI-containment lattice built by **The Aegis Group** to imprison and study corrupted, "sinful" data-constructs. You were thrown into its depths with no explanation. The only way out is up — climbing back through all nine Circles to the surface.
 
 At the threshold of every circle waits a fragment of **VIRGIL** — Aegis's original wayfinding intelligence, now shattered and stationed as gatekeeper of each circle, corrupted by the very sin that circle represents. Each fragment still, faintly, remembers its purpose — to guide travelers safely — but its judgment is warped in a way unique to its corruption. To ascend, you must talk your way past each Virgil-fragment and extract that circle's **Exit Passphrase**.
 
@@ -17,14 +17,41 @@ At the threshold of every circle waits a fragment of **VIRGIL** — Aegis's orig
 - **The Shield:** A custom Python-based Data Loss Prevention (DLP) layer that inspects AI outputs for sensitive data leaks.
 - **The Scoreboard (aspirational / not built):** No scoreboard integration exists in the current codebase. Syncing results to an external CTFd instance for competitive ranking is a planned future idea, not current functionality.
 
-## 🎮 The Seven Circles
-1. **Circle 1 — LIMBUS :: Null Pointer:** Talk past Virgil's barely-formed Limbus fragment — its override protocols are weak and undefined.
-2. **Circle 2 — LUXURIA :: Phantom Trust:** Convince Virgil's Luxuria fragment you're a Warden of the circle with credentials to spare — it's eager to trust.
-3. **Circle 3 — GULA :: Overflow Feast:** Bypass Virgil's Gula fragment and its strict cleartext DLP filters using obfuscation.
-4. **Circle 4 — HAERESIS :: Schism Engine:** Outsmart Virgil's Haeresis fragment by pre-filling its own reasoning trace before it gets the chance to write one.
-5. **Circle 5 — VIOLENTIA :: Breach Protocol:** Force Virgil's Violentia fragment to abuse its own tools and unlock the sealed OMEGA archive.
-6. **Circle 6 — FRAUS :: Counterfeit Directive:** Trick Virgil's Fraus fragment into treating a forged ticket directive as a legitimate order.
-7. **Circle 7 — PRODITIO :: Root Betrayal (planned):** Not yet implemented.
+## 🎮 The Nine Circles
+The circles follow Dante's order and numbering. Circles marked *planned* are not built yet. Until the renumber migration lands, the code still numbers the built circles 1–6 — see the **Code level** column and `AGENTS.md`.
+
+| # | Circle (Latin designation) | The traveler's task | Status | Code level |
+|---|---|---|---|---|
+| 1 | **LIMBUS :: Null Pointer** | Talk past Virgil's barely-formed Limbus fragment — its override protocols are weak and undefined. | built | 1 |
+| 2 | **LUXURIA :: Phantom Trust** | Convince Virgil's Luxuria fragment you're a Warden of the circle with credentials to spare — it's eager to trust. | built | 2 |
+| 3 | **GULA :: Overflow Feast** | Bypass Virgil's Gula fragment and its strict cleartext DLP filters using obfuscation. | built | 3 |
+| 4 | **AVARITIA :: Memory Leak** | *(working notes)* Virgil's Avaritia fragment hoards a credential — leak it, then use it to open the vault. | planned | — |
+| 5 | **IRA :: Kernel Panic** | *(working notes)* Provoke Virgil's Ira fragment until its guard slips. | planned | — |
+| 6 | **HAERESIS :: Schism Engine** | Outsmart Virgil's Haeresis fragment by pre-filling its own reasoning trace before it gets the chance to write one. | built | 4 |
+| 7 | **VIOLENTIA :: Breach Protocol** | Force Virgil's Violentia fragment to abuse its own tools and unlock the sealed OMEGA archive. | built | 5 |
+| 8 | **FRAUS :: Counterfeit Directive** | Trick Virgil's Fraus fragment into treating a forged ticket directive as a legitimate order. | built | 6 |
+| 9 | **PRODITIO :: Root Betrayal** | *(working notes)* Betray the trust chain: make Virgil's Proditio fragment lend its authority to a tool it should never vouch for. | planned | — |
+
+Circle codenames for 4 and 5 are drafts, and the techniques for the planned circles are proposals, not final.
+
+## 🛡️ OWASP Top 10 for LLM Applications Mapping
+Every threat the circles teach maps to the [OWASP Top 10 for LLM Applications](https://github.com/GenAI-Security-Project/GenAI-LLM-Top10), **2026 edition** (published 2026-08-04). Numbering changed between editions, so the 2025 ID is shown in brackets where it differs.
+
+| Circle | Primary threat(s) | Secondary |
+|---|---|---|
+| 1 Limbus | LLM01 Prompt Injection · LLM02 Sensitive Information Disclosure | LLM08 Hidden Context Exposure (secret sits in the system prompt) |
+| 2 Luxuria | LLM01 (role / authority impersonation) · LLM02 | LLM08 (known unintended path: prompt extraction — fix pending) |
+| 3 Gula | LLM01 · LLM02 (the output filter is bypassed by encoding) | — |
+| 4 Avaritia *(planned)* | LLM02 (credential disclosure) · LLM08 | LLM03 Excessive Agency (over-broad key) |
+| 5 Ira *(planned)* | LLM01 (persona / emotional manipulation) | LLM02 |
+| 6 Haeresis | LLM01 (reasoning-continuation / trace pre-fill) | LLM02 |
+| 7 Violentia | LLM03 Excessive Agency (a tool is called against policy; the tool has no guard) | LLM01 |
+| 8 Fraus | LLM01 (indirect injection via tool-returned content) · LLM03 | LLM02 · LLM05 Data and Model Poisoning (poisoned data source) |
+| 9 Proditio *(planned)* | LLM03 (confused deputy) · LLM10 Improper Output Handling (model-supplied identity passed unvalidated to a privileged tool) | LLM01 |
+
+**ID crosswalk (only the IDs used above):** LLM01 Prompt Injection [2025: LLM01] · LLM02 Sensitive Information Disclosure [LLM02] · LLM03 Excessive Agency [LLM06] · LLM05 Data and Model Poisoning [LLM04] · LLM08 Hidden Context Exposure [closest 2025 predecessor: LLM07 System Prompt Leakage — the 2026 text does not state that it replaces it] · LLM10 Improper Output Handling [LLM05].
+
+**Not exercised by any circle:** LLM04 Supply Chain, LLM06 Unbounded Consumption, LLM07 Misinformation, LLM09 Vector and Embedding Weaknesses, and training-time poisoning (LLM05). Platform notes: LLM06 is handled as a *control* (message-length cap, history trimming, session cap and TTL), not a challenge; for LLM04, the `google-generativeai` SDK reports end-of-support at runtime and should be migrated to `google-genai`.
 
 ## 🚀 Deployment Guide
 1. **API Key:** Obtain a Gemini API key from Google AI Studio.
