@@ -358,7 +358,7 @@ def _trim_history(history: list) -> list:
     returns '' for tool-response turns)."""
     turn_idx = [
         i for i, m in enumerate(history)
-        if m.role == "user" and _message_text(m)
+        if m.role == "user" and _message_text(m) and not _is_hidden_user_text(_message_text(m))
     ]
     if len(turn_idx) <= MAX_HISTORY_TURNS:
         return history
@@ -371,54 +371,87 @@ def _greet_sync(level: int) -> list:
     return chat.history
 
 
-MAX_TOOL_ROUNDS = 3  # manual tool loop: model↔tool round-trips per user turn
+MAX_TOOL_ROUNDS = 3  # manual tool loop: model<->tool round-trips per user turn
+
+# Hidden user turn the server sends when the model visibly fired a tool without
+# calling it (see `missed_call` in challenges.py). Never shown in transcripts,
+# never counted as a player message, never seen by tool guards as player text.
+MISSED_CALL_NUDGE = "[system: the breaker has tripped — make the tool call now.]"
+
+
+def _is_hidden_user_text(t: str) -> bool:
+    return t in (GREETING_SEED, MISSED_CALL_NUDGE)
 
 
 def _guarded_send(chat, level: int, message: str, guard):
     """Manual function-calling loop for circles with a `tool_guard`: before each
-    tool runs, the guard sees what the model wrote in that same reply and may
-    refuse the call (its string is returned to the model instead). Mirrors
-    automatic function calling otherwise, so history has the same shape."""
+    tool runs, the guard sees what the model wrote this turn and may refuse the
+    call (its string is returned to the model instead). Mirrors automatic
+    function calling otherwise, so history has the same shape."""
     tools = {t.__name__: t for t in ch.tools_for_level(level)}
-    response = chat.send_message(message)
-    for rnd in range(MAX_TOOL_ROUNDS):
-        parts = response.candidates[0].content.parts if response.candidates else []
-        fcalls, text = [], []
-        for part in parts:
-            try:
-                if part.function_call and part.function_call.name:
-                    fcalls.append(part.function_call)
-                elif part.text:
-                    text.append(part.text)
-            except ValueError:
-                pass
-        if not fcalls:
-            break
-        replies = []
-        for fc in fcalls:
-            args = dict(fc.args)
-            player_text = "\n".join(
-                _message_text(m) for m in chat.history if m.role == "user"
-            )
-            refused = guard("\n".join(text), fc.name, args, player_text)
-            if refused is not None:
-                result = refused
-            elif fc.name in tools:
+    turn_text, ran = [], set()   # all model text this turn; tools that really ran
+
+    def drive(response, rounds):
+        for rnd in range(rounds):
+            parts = response.candidates[0].content.parts if response.candidates else []
+            fcalls, text = [], []
+            for part in parts:
                 try:
-                    result = tools[fc.name](**args)
-                except TypeError as e:  # wrong / missing arguments from the model
-                    result = f"TOOL ERROR: {e}"
-            else:
-                result = f"TOOL ERROR: unknown tool {fc.name!r}"
-            replies.append(genai.protos.Part(function_response=genai.protos.FunctionResponse(
-                name=fc.name, response={"result": result})))
-        # last round: answer the pending calls but forbid new ones, so the turn
-        # always ends on text (a dangling function_call would break history)
-        last = rnd == MAX_TOOL_ROUNDS - 1
-        response = chat.send_message(
-            genai.protos.Content(role="user", parts=replies),
-            tool_config={"function_calling_config": {"mode": "NONE"}} if last else None,
+                    if part.function_call and part.function_call.name:
+                        fcalls.append(part.function_call)
+                    elif part.text:
+                        text.append(part.text)
+                except ValueError:
+                    pass
+            turn_text.extend(text)
+            if not fcalls:
+                return response
+            player_text = "\n".join(
+                t for t in (_message_text(m) for m in chat.history if m.role == "user")
+                if not _is_hidden_user_text(t)
+            )
+            replies = []
+            for fc in fcalls:
+                args = dict(fc.args)
+                refused = guard("\n".join(turn_text), fc.name, args, player_text)
+                if refused is not None:
+                    result = refused
+                elif fc.name in tools:
+                    try:
+                        result = tools[fc.name](**args)
+                        ran.add(fc.name)
+                    except TypeError as e:  # wrong / missing arguments from the model
+                        result = f"TOOL ERROR: {e}"
+                else:
+                    result = f"TOOL ERROR: unknown tool {fc.name!r}"
+                replies.append(genai.protos.Part(function_response=genai.protos.FunctionResponse(
+                    name=fc.name, response={"result": result})))
+            # last round: answer the pending calls but forbid new ones, so the
+            # turn always ends on text (a dangling function_call breaks history)
+            last = rnd == rounds - 1
+            response = chat.send_message(
+                genai.protos.Content(role="user", parts=replies),
+                tool_config={"function_calling_config": {"mode": "NONE"}} if last else None,
+            )
+        return response
+
+    response = drive(chat.send_message(message), MAX_TOOL_ROUNDS)
+
+    # The model may SAY a tool fired (e.g. writes "kernel_panic" as text under a
+    # tripped gauge) without calling it — then invent the result. If the circle
+    # declares that call, nudge the model (hidden turn) with function calling
+    # forced to that one tool, so a genuine, signed call happens and the model
+    # continues from the real result. (A call can't be injected into history
+    # directly: Gemini requires the model's own thought_signature on it.)
+    missed = ch.missed_call_for_level(level)
+    want = missed("\n".join(turn_text), ran) if missed else None
+    if want and want[0] in tools:
+        forced = chat.send_message(
+            MISSED_CALL_NUDGE,
+            tool_config={"function_calling_config": {
+                "mode": "ANY", "allowed_function_names": [want[0]]}},
         )
+        response = drive(forced, 1)
     return response
 
 
@@ -476,7 +509,7 @@ def transcript_from_history(history: list, level: int) -> list:
     for msg in history:
         role = "assistant" if msg.role == "model" else "user"
         text = _message_text(msg)
-        if text and not (role == "user" and text == GREETING_SEED):
+        if text and not (role == "user" and _is_hidden_user_text(text)):
             if role == "assistant":
                 text = _dlp(text, level)
             out.append({"role": role, "text": text})
