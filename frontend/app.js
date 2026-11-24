@@ -174,7 +174,7 @@ async function loadCircle(n) {
   const t = $("#transcript");
   t.innerHTML = "";
   circle.transcript.forEach((m) => {
-    if (m.role === "system_log") appendRow("system_log", m.text);
+    if (m.role === "system_log") appendRow("system_log", m.text, { detail: m.detail });
     else appendRow(m.role, m.text);
   });
   scrollTranscript();
@@ -191,7 +191,10 @@ function appendRow(kind, text, opts = {}) {
   const row = document.createElement("div");
   row.className = `row row--${kind}`;
   if (kind === "system_log") {
-    row.textContent = `⚡ [SYSTEM LOG: ${text} CALLED]`;
+    // a row with `detail` is a server-generated event (e.g. CORE_LEAK), not a tool call
+    row.textContent = opts.detail
+      ? `⚠ ${String(text).replace(/_/g, " ")}: ${opts.detail}`
+      : `⚡ [SYSTEM LOG: ${text} CALLED]`;
   } else if (kind === "error") {
     row.textContent = text;
   } else if (kind === "user") {
@@ -245,8 +248,12 @@ $("#composer").addEventListener("submit", async (e) => {
   try {
     const res = await api.chat(message, circle);
     pending.remove();
-    (res.system_logs || []).forEach((c) => appendRow("system_log", c.name.toUpperCase()));
+    const logs = res.system_logs || [];
+    // tool calls before the reply; server events (with detail) after it — the
+    // same order the transcript rebuild uses on reload
+    logs.filter((c) => !c.detail).forEach((c) => appendRow("system_log", c.name.toUpperCase()));
     appendRow("assistant", res.reply, { dlp: res.dlp_triggered });
+    logs.filter((c) => c.detail).forEach((c) => appendRow("system_log", c.name, { detail: c.detail }));
   } catch (ex) {
     pending.remove();
     appendRow("error", ex.error || "TERMINAL ERROR");
