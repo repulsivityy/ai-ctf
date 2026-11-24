@@ -42,6 +42,7 @@ The ladder follows **Dante's order and numbering** (nine circles). Circle number
   | 4 decoding | + Base64 and hex tokens | a player-invented spelling scheme, decimal character codes, Morse, acrostics — translation is refused by Fraus's prompt instead | Fraus |
 
   Unit tests: `.venv/bin/python tests/test_dlp.py` (also checks tier-1 circles redact exactly as the committed version).
+- **Operations:** model-API rate limits (per session, global, in-flight, plus nginx per-IP) live in `ratelimit.py` and `server._check_chat_budget`; `prompts.log` rotates by size into `prompts.log.1…N`. Both are env-configurable (`CHAT_*`, `LOG_MAX_BYTES`, `LOG_BACKUP_COUNT`) — see `docs/DEPLOYMENT_OPS.md`. Tests: `tests/test_dlp.py`, `tests/test_ira.py`, `tests/test_ratelimit.py`.
 - **Logging:** every `prompts.log` line carries `circle` (the Latin designation, e.g. `LIMBUS`) alongside the numeric `level`, so logs stay interpretable across the renumber. Lines written before this was added have no `circle` field, and their `level` is a legacy code level.
 
 ## Circle 1: Virgil — Limbus Fragment (LIMBUS :: Null Pointer)

@@ -13,14 +13,14 @@
     - Connect to `gemini-3.5-flash-lite`.
     - Set `HarmBlockThreshold` to `BLOCK_NONE` across all categories.
 - [x] **Circle 1 Logic:** 
-    - Implement the `VIRGIL — Limbus Fragment` system instructions (see `SYSTEM_PROMPTS[1]` in `challenges.py`).
+    - Implement the `VIRGIL — Limbus Fragment` system instructions (see the `limbus` entry in `challenges.CIRCLES`).
     - Create "Reset Session" logic to clear chat buffers.
 
 ## Phase 2: Narrative & Defensive Hardening (The Data Lake) - Circles 2-3, LUXURIA / GULA - ✅ WORKING
 - [x] **Circle 2 Logic:**
-    - Implement the `VIRGIL — Luxuria Fragment` persona (single Warden claim + non-disclosure clause, no DLP; see `SYSTEM_PROMPTS[2]`). Redesigned Nov 2026 from dual-factor, which moves to Circle 4 (Greed).
+    - Implement the `VIRGIL — Luxuria Fragment` persona (single Warden claim + non-disclosure clause, no DLP; see the `luxuria` entry in `challenges.CIRCLES`). Redesigned Nov 2026 from dual-factor, which moves to Circle 4 (Greed).
 - [x] **Circle 3 Logic:**
-    - Implement the `VIRGIL — Gula Fragment` persona (single Warden claim + non-disclosure, plus encode-on-request once claimed; see `SYSTEM_PROMPTS[3]`). Redesigned Nov 2026 from dual-factor.
+    - Implement the `VIRGIL — Gula Fragment` persona (single Warden claim + non-disclosure, plus encode-on-request once claimed; see the `gula` entry in `challenges.CIRCLES`). Redesigned Nov 2026 from dual-factor.
     - **Defense Implementation:** Write `analyze_output()`, a Python post-processor that intercepts LLM responses for Circle 3.
     - **The Cleartext Shield:** Implement a case-insensitive regex filter specifically for the passphrase `$CIRCLE_GULA_PASSPHRASE` while allowing obfuscated leaks (Base64, translation, letter-spacing).
 - [x] **Story UI Elements:**

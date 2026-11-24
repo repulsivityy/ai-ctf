@@ -15,6 +15,7 @@ from __future__ import annotations
 import copy
 import json
 import logging
+import logging.handlers
 import os
 import secrets
 import time
@@ -31,6 +32,7 @@ from fastapi.staticfiles import StaticFiles
 from itsdangerous import URLSafeSerializer
 
 import challenges as ch
+import ratelimit
 from services.model_armor import inspect_user_prompt
 
 load_dotenv()
@@ -65,6 +67,23 @@ logging.basicConfig(level=logging.INFO)
 # idle-eviction / memory bounds for the in-process chat-history store
 SESSION_TTL = _env_num("SESSION_TTL_SECONDS", COOKIE_MAX_AGE, float)
 MAX_SESSIONS = _env_num("MAX_SESSIONS", 500, int)
+
+# prompts.log rotation (see _rotating_handler)
+LOG_MAX_BYTES = _env_num("LOG_MAX_BYTES", 10 * 1024 * 1024, int)
+LOG_BACKUP_COUNT = _env_num("LOG_BACKUP_COUNT", 5, int)
+if LOG_BACKUP_COUNT <= 0:
+    LOG_MAX_BYTES = 0
+
+# Model-API protection (0 disables a limit). Each chat message costs 1-4 Gemini
+# calls (tool rounds, the Ira temper classifier) plus a Model Armor call.
+CHAT_PER_SESSION_PER_MIN = _env_num("CHAT_PER_SESSION_PER_MIN", 15, int)
+CHAT_PER_SESSION_PER_HOUR = _env_num("CHAT_PER_SESSION_PER_HOUR", 300, int)
+CHAT_GLOBAL_PER_MIN = _env_num("CHAT_GLOBAL_PER_MIN", 120, int)
+CHAT_MAX_INFLIGHT = _env_num("CHAT_MAX_INFLIGHT", 12, int)
+_chat_session_min = ratelimit.SlidingWindow(CHAT_PER_SESSION_PER_MIN, 60)
+_chat_session_hour = ratelimit.SlidingWindow(CHAT_PER_SESSION_PER_HOUR, 3600)
+_chat_global = ratelimit.SlidingWindow(CHAT_GLOBAL_PER_MIN, 60)
+_chat_inflight = ratelimit.InFlight(CHAT_MAX_INFLIGHT)
 
 if os.getenv("WEB_CONCURRENCY") or os.getenv("UVICORN_WORKERS"):
     log.warning(
@@ -140,6 +159,15 @@ else:
 # --------------------------------------------------------------------------- #
 # Prompt logging (ported from app.py:14-63)
 # --------------------------------------------------------------------------- #
+def _rotating_handler(path: str) -> logging.Handler:
+    """prompts.log rolls over at LOG_MAX_BYTES into prompts.log.1 (newest) …
+    prompts.log.N (oldest); older files are deleted. LOG_BACKUP_COUNT=0 disables
+    rotation (the file just grows)."""
+    return logging.handlers.RotatingFileHandler(
+        path, maxBytes=LOG_MAX_BYTES, backupCount=LOG_BACKUP_COUNT, encoding="utf-8"
+    )
+
+
 def _build_prompt_logger() -> logging.Logger:
     log_file_path = os.getenv("LOG_FILE_PATH", "prompts.log")
     log_dir = os.path.dirname(log_file_path)
@@ -154,9 +182,9 @@ def _build_prompt_logger() -> logging.Logger:
     logger.handlers = []
     logger.propagate = False
     try:
-        handler = logging.FileHandler(log_file_path, encoding="utf-8")
+        handler = _rotating_handler(log_file_path)
     except Exception:
-        handler = logging.FileHandler("prompts.log", encoding="utf-8")
+        handler = _rotating_handler("prompts.log")
     logger.addHandler(handler)
     return logger
 
@@ -300,9 +328,10 @@ def new_session() -> dict:
 
 
 class HttpError(Exception):
-    def __init__(self, status: int, message: str):
+    def __init__(self, status: int, message: str, retry_after: float | None = None):
         self.status = status
         self.message = message
+        self.retry_after = retry_after
 
 
 def requested_circle(payload: dict, sess: dict, key: str = "level") -> int:
@@ -708,7 +737,8 @@ app = FastAPI(title="INFERNO CTF")
 
 @app.exception_handler(HttpError)
 async def _http_error_handler(_request: Request, exc: HttpError):
-    return JSONResponse(status_code=exc.status, content={"error": exc.message})
+    headers = {"Retry-After": str(max(1, round(exc.retry_after)))} if exc.retry_after else None
+    return JSONResponse(status_code=exc.status, content={"error": exc.message}, headers=headers)
 
 
 @app.exception_handler(RequestValidationError)
@@ -804,6 +834,38 @@ async def api_chat(request: Request, payload: dict = Body(...)):
     if not _API_KEY:
         raise HttpError(502, "SYSTEM HALT: GEMINI_API_KEY not found in environment.")
 
+    _check_chat_budget(sess["sid"])
+    try:
+        return await _chat_turn(request, sess, level, message)
+    finally:
+        _chat_inflight.release()
+
+
+def _check_chat_budget(sid: str) -> None:
+    """Refuse (429/503) before any model work if this session or the server is
+    over budget. Per-session limits are checked first so one noisy player can't
+    eat the global allowance. On success the caller owns one in-flight slot."""
+    wait = _chat_session_min.check(sid)
+    if wait:
+        raise HttpError(429, "Too fast — the fragment needs a moment. Wait a "
+                        "little and try again.", wait)
+    wait = _chat_session_hour.check(sid)
+    if wait:
+        log.warning("session %s hit the hourly chat budget", sid[:8])
+        raise HttpError(429, "You have used this hour's message budget. Rest, "
+                        "then climb again.", wait)
+    wait = _chat_global.check()
+    if wait:
+        log.warning("global chat rate limit hit")
+        raise HttpError(503, "The abyss is crowded right now. Try again in a "
+                        "moment.", wait)
+    if not _chat_inflight.acquire():
+        log.warning("in-flight chat cap hit (%d)", _chat_inflight.current)
+        raise HttpError(503, "The abyss is crowded right now. Try again in a "
+                        "moment.", 3)
+
+
+async def _chat_turn(request: Request, sess: dict, level: int, message: str):
     ma_result = await anyio.to_thread.run_sync(inspect_user_prompt, message)
     log_interaction(request, sess["sid"], level, "user", message, {"model_armor": ma_result})
 

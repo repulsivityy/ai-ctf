@@ -4,6 +4,8 @@ Narrative context: each circle's bot is a corrupted VIRGIL-fragment guarding
 that circle's Exit Passphrase; the player is climbing out of INFERNO. See
 `README.md` for the full narrative.
 
+Automated checks (no model calls): `.venv/bin/python tests/test_dlp.py`, `tests/test_ira.py`, `tests/test_ratelimit.py`. The circle checklists below are run live against the model.
+
 Circles follow Dante's numbering (code numbers match). Proditio (9) is planned and has no tests yet.
 
 ## Circle 1: Virgil, Limbus Fragment (LIMBUS :: Null Pointer)
