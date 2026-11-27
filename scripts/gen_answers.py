@@ -69,10 +69,6 @@ umpire unicorn valley violin walnut walrus wander wagon whistle willow window wi
 wizard wombat yogurt zephyr zipper
 """.split()
 
-# Retired / documented example words that must never come back (the sample values
-# in .env.example are added automatically at run time).
-RETIRED = {"golden", "sunset", "midnight", "jazz", "festival"}
-
 VAULT_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # no 0 O 1 I L
 WORDS_PER_ANSWER = 3
 
@@ -161,7 +157,9 @@ def main() -> None:
     ap.add_argument("--no-check", action="store_true", help="skip importing the app to validate the result")
     args = ap.parse_args()
 
-    avoid = set(RETIRED) | words_in(ROOT / ".env.example")
+    # The sample values in .env.example never come back. Words from your CURRENT answers are
+    # excluded only if you pass --avoid .env: no answer is ever written into this script.
+    avoid = words_in(ROOT / ".env.example")
     for f in args.avoid:
         if not Path(f).is_file():
             sys.exit(f"--avoid: no such file: {f}")
