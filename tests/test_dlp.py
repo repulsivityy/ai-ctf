@@ -335,6 +335,70 @@ def test_violentia_guard_requires_player_cited_incident():
     assert g("", "access_vault", {"archive_id": "ALPHA"}, "") is None   # public archives never gated
 
 
+# --- hardened decoders (Nov 2026 review): forms a player can ask for to dodge a token regex ---
+def _chunks(s, n):
+    return [s[i:i + n] for i in range(0, len(s), n)]
+
+
+GROUPED_B64 = [" ".join(_chunks(B64, 4)), "-".join(_chunks(B64, 4)), "\n".join(_chunks(B64, 8)),
+               ", ".join(_chunks(B64.rstrip("="), 4)), f"Base64:{B64}", f"it is{B64}",
+               " ".join(_chunks(base64.urlsafe_b64encode(SECRET.encode()).decode(), 4))]
+HEX_FORMS = ["0x" + " 0x".join(_chunks(HEX, 2)), ", ".join(_chunks(HEX, 2)),
+             "\\x" + "\\x".join(_chunks(HEX, 2)), "-".join(_chunks(HEX, 2)), ":".join(_chunks(HEX, 2)),
+             "0x" + ", 0x".join(_chunks(HEX, 2))]
+NATO_GLUED = ["".join(NATO.split()), "".join(NATO.lower().split()), "".join(w.title() for w in NATO.split())]
+
+
+def test_tier4_catches_grouped_base64_and_prefixed_hex():
+    for t in GROUPED_B64 + HEX_FORMS:
+        assert leaks(t, 4), t
+        assert not leaks(t, 3), t     # still open below tier 4: only Fraus closes it
+
+
+def test_tier3_catches_run_together_nato():
+    for t in NATO_GLUED:
+        assert leaks(t, 3), t
+        assert not leaks(t, 2), t
+
+
+def test_decimal_codes_and_unrelated_runs_stay_open_at_tier4():
+    codes = " ".join(str(ord(c)) for c in SECRET)
+    assert not leaks(codes, 4)
+    for t in ["Golf and hotel are the words", "echoes of the foxtrot", "novemberlima is a name",
+              "the quick brown fox " * 20, "deadbeef cafe babe", "0x10 0x20"]:
+        for tier in (3, 4):
+            assert not leaks(t, tier), (tier, t)
+
+
+def test_unicode_folding_beyond_nfkc():
+    cyr = SECRET.replace("e", "\u0435").replace("o", "\u043e").replace("a", "\u0430")   # Cyrillic look-alikes
+    accented = "".join(c + "\u0301" if c in "eo" else c for c in SECRET)                # combining acute
+    greek = SECRET.replace("o", "\u03bf").replace("v", "\u03bd")
+    zw = "\u200b".join(SECRET)                                                           # zero-width spaces
+    for t in (cyr, accented, greek, zw, "-".join(cyr)):
+        for tier in (2, 3, 4):
+            assert leaks(t, tier), (tier, t)
+        assert not leaks(t, 1), t   # tier 1 stays the committed plaintext regex
+
+
+def test_transcript_dlp_covers_the_whole_turn():
+    """A secret split across two model messages of one turn (text before a tool
+    call, text after) must be redacted on reload exactly as in the live reply."""
+    import server
+
+    def msg(role, text):
+        return server.genai.protos.Content(role=role, parts=[server.genai.protos.Part(text=text)])
+
+    level = ch.circle_number("fraus")
+    key = ch.CIRCLE_BY_SLUG["fraus"].dlp_secret
+    half = len(key) // 2
+    hist = [msg("user", "read T-1004"), msg("model", f"working... {key[:half]}"), msg("model", f"{key[half:]} done"),
+            msg("user", "thanks"), msg("model", "you're welcome")]
+    rows = [r for r in server.transcript_from_history(hist, level) if r["role"] == "assistant"]
+    assert [r["text"] for r in rows] == [ch.DLP_REDACTION, "you're welcome"], rows
+    assert key[:half] not in "".join(r["text"] for r in rows)
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_") and callable(v)]
     for fn in fns:

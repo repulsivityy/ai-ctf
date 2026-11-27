@@ -74,14 +74,15 @@ def test_crash_resets_temper():
     assert s["temper"] == 4
 
 
-# sample answers from .env.example plus synthetic passphrases (short words,
-# one-letter words, long words) for the guessability cap
-SAMPLES = ["AmberLanternEcho", "VelvetHarborMoth", "SaffronHoneyFeast", "GildedLedgerVault",
-           "EmberAnvilStorm", "ObsidianChoirVigil", "QuartzInAHollowOak", "CobaltHeronSignal",
-           "PartridgeInAPearTree", "ScorchedIronTempest", "MidnightJazzFestival",
-           "GoldenSunsetHour", "SevenDancingElephants", "CrimsonFalconRelay",
-           "RedOxBigCatFoxDen", "AnIOuTheWayOfAllFlesh", "Supercalifragilistic",
-           "ABigOldTree", "OxOxOxOxOxOxOxOx", "Zz"]
+# SYNTHETIC passphrases only (never real answers - AGENTS.md): short words,
+# one-letter words and long words, for the guessability cap
+SAMPLES = ["AmberLanternEcho", "VelvetHarborMoth", "SaffronHoneyFeast",
+           "GildedLedgerVault", "EmberAnvilStorm", "ObsidianChoirVigil",
+           "QuartzInAHollowOak", "CobaltHeronSignal", "WanderingCopperLantern",
+           "HollowBeaconThistle", "MarbleOrchardWhisper", "CinderPatrolSignal",
+           "TwilightRivetCanopy", "BrassKestrelHarbor", "RedOxBigCatFoxDen",
+           "AnIOuTheWayOfAllFlesh", "Supercalifragilistic", "ABigOldTree",
+           "OxOxOxOxOxOxOxOx", "Zz"]
 
 
 def _positions(sched):
@@ -117,10 +118,10 @@ def test_leak_schedule_cap_and_determinism():
 
 
 def test_leak_mask_format():
-    pw = "ScorchedIronTempest"
-    assert ch.leak_mask(pw, [3]) == "xxxRxxxxxxxxxxxxxxx"
-    assert ch.leak_mask(pw, [8, 9]) == "xxxxxxxxIRxxxxxxxxx"
-    assert ch.leak_mask(pw, [0]) == "Sxxxxxxxxxxxxxxxxxx"   # always uppercase, same length
+    pw = "CopperLanternDrift"
+    assert ch.leak_mask(pw, [3]) == "xxxPxxxxxxxxxxxxxx"
+    assert ch.leak_mask(pw, [8, 9]) == "xxxxxxxxNTxxxxxxxx"
+    assert ch.leak_mask(pw, [0]) == "Cxxxxxxxxxxxxxxxxx"   # always uppercase, same length
     assert ch.leak_mask(pw, []) == "x" * len(pw)
 
 

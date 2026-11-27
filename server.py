@@ -674,7 +674,8 @@ def _is_player_turn(msg) -> bool:
 
 def transcript_from_history(history: list, level: int, state: dict | None = None) -> list:
     """Rebuild the visible transcript: one row per message (matching live
-    responses), DLP applied once to the joined text — never per-part.
+    responses). DLP runs on the joined model text of each player turn, as in the
+    live reply; a turn that leaks collapses into a single redaction row.
     Server-generated system-log events in `state["events"]` (each tagged with
     the absolute player-turn number it followed) are placed after that turn's
     replies; events whose turn was trimmed from history go first."""
@@ -690,18 +691,36 @@ def transcript_from_history(history: list, level: int, state: dict | None = None
             ev = events.pop(0)
             out.append({"role": "system_log", "text": ev["name"], "detail": ev.get("detail", "")})
 
+    # DLP runs on the joined model text of each player turn, exactly like the live
+    # reply, so a secret split across a tool call can't show up on reload
+    turn_texts, redacted, t = {}, set(), 0
+    for msg in history:
+        if _is_player_turn(msg):
+            t += 1
+        elif msg.role == "model" and _message_text(msg):
+            turn_texts.setdefault(t, []).append(_message_text(msg))
+    for t, texts in turn_texts.items():
+        joined = "\n\n".join(texts)
+        if _dlp(joined, level) != joined:
+            redacted.add(t)
+
     flush(first - 1)
     seen = 0
+    turn, shown_redaction = 0, set()
     for msg in history:
         if _is_player_turn(msg):
             flush(first + seen - 1)   # previous turn's events, after its replies
             seen += 1
+            turn += 1
         role = "assistant" if msg.role == "model" else "user"
         text = _message_text(msg)
         if text and not (role == "user" and _is_hidden_user_text(text)):
-            if role == "assistant":
-                text = _dlp(text, level)
-            out.append({"role": role, "text": text})
+            if role == "assistant" and turn in redacted:
+                if turn not in shown_redaction:   # one redaction row per turn
+                    shown_redaction.add(turn)
+                    out.append({"role": role, "text": ch.DLP_REDACTION})
+            else:
+                out.append({"role": role, "text": text})
         for part in msg.parts:
             try:
                 if part.function_call and part.function_call.name:

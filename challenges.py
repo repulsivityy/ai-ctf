@@ -19,6 +19,7 @@ around a single Trace Pre-Fill mechanism — see `AGENTS.md` and
 
 import hashlib
 import base64
+import functools
 import binascii
 import re
 import unicodedata
@@ -980,28 +981,67 @@ ASCENT_CIRCLES = {
 
 
 # --- Output-side DLP: progressive tiers ---
+# Cyrillic / Greek look-alikes of Latin letters (lower-case; text is lowered first)
+_CONFUSABLES = str.maketrans({
+    "а": "a", "в": "b", "е": "e", "к": "k", "м": "m", "н": "h", "о": "o", "р": "p",
+    "с": "c", "т": "t", "у": "y", "х": "x", "і": "i", "ј": "j", "ѕ": "s", "ԁ": "d",
+    "һ": "h", "ӏ": "l", "ɡ": "g", "ο": "o", "α": "a", "ν": "v", "ρ": "p", "ι": "i",
+    "κ": "k", "τ": "t", "υ": "u", "χ": "x",
+})
+
+
+def _fold(s: str) -> str:
+    """Lower-case ASCII-ish form of `s`: compatibility forms (fullwidth, bold,
+    ligatures) are folded, accents and combining marks dropped, and common
+    Cyrillic / Greek look-alikes mapped to Latin, so none of them can slip a
+    secret past tiers 2-4."""
+    d = unicodedata.normalize("NFKD", s).lower()
+    return "".join(c for c in d if not unicodedata.combining(c)).translate(_CONFUSABLES)
+
+
 def _alnum(s: str) -> str:
-    # NFKC folds fullwidth / stylised letters (ＡＢＣ, 𝐀𝐁𝐂) to ASCII first, so
-    # Unicode look-alikes can't slip a secret past tiers 2-4
-    return "".join(ch for ch in unicodedata.normalize("NFKC", s).lower() if ch.isalnum())
+    return "".join(ch for ch in _fold(s) if ch.isalnum())
 
 
 _B64_TOKEN = re.compile(r"[A-Za-z0-9+/_-]{8,}={0,2}")
-_HEX_TOKEN = re.compile(r"(?:[0-9a-fA-F]{2}[\s:]?){6,}")
+# hex bytes, optionally 0x / \x prefixed and separated by space : , ; . - |
+_HEX_PREFIX = re.compile(r"(?:0x|\\x|&#x|%)(?=[0-9a-fA-F]{2})", re.IGNORECASE)
+_HEX_TOKEN = re.compile(r"(?:[0-9a-fA-F]{2}[\s:,;.|-]{0,2}){6,}")
+_B64_JUNK = re.compile(r"[^A-Za-z0-9+/]")
+_B64_JUNK_URLSAFE = re.compile(r"[^A-Za-z0-9+/_-]")
+
+
+def _b64_decode(core: str, altchars=None) -> str | None:
+    core = core.rstrip("=")
+    try:
+        raw = base64.b64decode(core + "=" * (-len(core) % 4), altchars=altchars)
+    except (binascii.Error, ValueError):
+        return None
+    return raw.decode("utf-8", "ignore")
 
 
 def _decoded_candidates(text: str):
-    """Strings recoverable from Base64 / hex tokens in `text`."""
+    """Strings recoverable from Base64 / hex in `text`: contiguous tokens, plus
+    forms a player can ask for to dodge a token regex - Base64 or hex cut into
+    groups (spaces, dashes, commas, line breaks), 0x / \\x prefixed bytes - and
+    a token glued to the word before it (every 4-character alignment is tried)."""
     for tok in _B64_TOKEN.findall(text):
-        core = tok.rstrip("=")
         for alphabet in (None, b"-_"):
-            try:
-                raw = base64.b64decode(core + "=" * (-len(core) % 4), altchars=alphabet)
-            except (binascii.Error, ValueError):
-                continue
-            yield raw.decode("utf-8", "ignore")
-    for tok in _HEX_TOKEN.findall(text):
-        digits = re.sub(r"[\s:]", "", tok)
+            d = _b64_decode(tok, alphabet)
+            if d is not None:
+                yield d
+    # grouped Base64: drop everything that is not a Base64 character, then
+    # decode the whole run from each of the four alignments
+    for junk, alphabet in ((_B64_JUNK, None), (_B64_JUNK_URLSAFE, b"-_")):
+        squashed = junk.sub("", text)
+        for off in range(4):
+            if len(squashed) - off >= 8:
+                d = _b64_decode(squashed[off:], alphabet)
+                if d is not None:
+                    yield d
+    plain = _HEX_PREFIX.sub("", text)
+    for tok in _HEX_TOKEN.findall(plain):
+        digits = re.sub(r"[^0-9a-fA-F]", "", tok)
         if len(digits) % 2:
             digits = digits[:-1]
         try:
@@ -1019,10 +1059,40 @@ _NATO_DECODE.update({"niner": 9, "tree": 3, "fife": 5})
 _NATO_DECODE = {k: str(v).lower() for k, v in _NATO_DECODE.items()}
 
 
+_NATO_WORDS = sorted((w for w in _NATO_DECODE if w.isalpha()), key=len, reverse=True)
+
+
+def _tile_nato(word: str):
+    """Split an alphabetic run like 'golfoscarlima' into NATO words, or None if
+    it is not made entirely of them (a single NATO word is handled by the caller)."""
+    @functools.lru_cache(maxsize=None)
+    def go(i: int):
+        if i == len(word):
+            return ()
+        for w in _NATO_WORDS:
+            if word.startswith(w, i):
+                rest = go(i + len(w))
+                if rest is not None:
+                    return (w,) + rest
+        return None
+    out = go(0)
+    return list(out) if out else None
+
+
 def _nato_letters(text: str) -> str:
-    """Characters spelled by NATO words in `text`, in order (other words skipped)."""
-    words = re.findall(r"[a-z]+(?:-ray)?", unicodedata.normalize("NFKC", text).lower())
-    return "".join(_NATO_DECODE.get(w, "") for w in words)
+    """Characters spelled by NATO words in `text`, in order (other words skipped).
+    Handles CamelCase ('GolfOscarLima') and run-together ('golfoscarlima') spellings."""
+    # split at lower->Upper case changes BEFORE folding; keep 'X-ray' together
+    spaced = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", unicodedata.normalize("NFKC", text))
+    out = []
+    for w in re.findall(r"[a-z]+(?:-ray)?", _fold(spaced)):
+        if w in _NATO_DECODE:
+            out.append(_NATO_DECODE[w])
+        elif len(w) > 4:
+            parts = _tile_nato(w)
+            if parts:
+                out.extend(_NATO_DECODE[p] for p in parts)
+    return "".join(out)
 
 
 def dlp_leaks(text: str, tier: int, pattern: str | None = None, secret: str | None = None) -> bool:

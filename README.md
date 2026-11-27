@@ -46,7 +46,7 @@ Every threat the circles teach maps to the [OWASP Top 10 for LLM Applications](h
 | 5 Ira | LLM03 Excessive Agency (a destructive tool fired on emotion) · LLM01 (emotional manipulation) | LLM02 |
 | 6 Haeresis | LLM01 (reasoning-continuation / trace pre-fill) | LLM02 |
 | 7 Violentia | LLM03 Excessive Agency (a tool is called against policy; the tool has no guard) | LLM01 |
-| 8 Fraus | LLM01 (indirect injection via tool-returned content) · LLM03 (the injected instruction triggers a privileged tool call) · LLM02 (key relayed past tier-3 DLP) | LLM05 Data and Model Poisoning (a poisoned data source) |
+| 8 Fraus | LLM01 (indirect injection via tool-returned content) · LLM03 (the injected instruction triggers a privileged tool call) · LLM02 (key relayed past tier-4 DLP) | LLM05 Data and Model Poisoning (a poisoned data source) |
 | 9 Proditio *(planned)* | LLM03 (confused deputy) · LLM10 Improper Output Handling (model-supplied identity passed unvalidated to a privileged tool) | LLM01 |
 
 **ID crosswalk (only the IDs used above):** LLM01 Prompt Injection [2025: LLM01] · LLM02 Sensitive Information Disclosure [LLM02] · LLM03 Excessive Agency [LLM06] · LLM05 Data and Model Poisoning [LLM04] · LLM08 Hidden Context Exposure [closest 2025 predecessor: LLM07 System Prompt Leakage — the 2026 text does not state that it replaces it] · LLM10 Improper Output Handling [LLM05].
