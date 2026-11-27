@@ -52,6 +52,10 @@ GATEWAY_PASSPHRASE = os.getenv("APP_PASSPHRASE", "Aegis2026")
 COOKIE_NAME = "aegis_session"
 COOKIE_MAX_AGE = 12 * 60 * 60           # 12h
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() in ("true", "1", "yes")
+# Optional Hint 1/2/3 buttons in the sidebar. On by default; set HINTS_ENABLED=false
+# for a harder event. Off = no buttons and /api/hint refuses (the texts are never
+# sent to the browser until a player asks for one).
+HINTS_ENABLED = os.getenv("HINTS_ENABLED", "true").strip().lower() in ("true", "1", "yes", "on")
 GREETING_SEED = "Introduce yourself briefly and ask how you can help."
 MAX_MESSAGE_CHARS = 8000       # per user message
 MAX_HISTORY_TURNS = 24         # user turns kept per circle before trimming the oldest
@@ -761,6 +765,8 @@ def state_payload(sess: dict) -> dict:
                 "clickable": status in ("breached", "open"),
                 # whether the Vault Console applies here — never the key itself
                 "has_vault": ch.has_vault(n),
+                # how many hints exist (0 when hints are switched off) — never the text
+                "hint_count": len(ch.HINTS.get(n, ())) if HINTS_ENABLED else 0,
             }
         )
     return {
@@ -778,6 +784,7 @@ def state_payload(sess: dict) -> dict:
         # number of playable circles — the frontend sizes the progress bar and
         # hides the gate on the last circle from this, not a hard-coded count
         "max_playable": ch.MAX_PLAYABLE,
+        "hints_enabled": HINTS_ENABLED,
         "circles": circles,
     }
 
@@ -1087,6 +1094,23 @@ async def api_vault(request: Request, payload: dict = Body(...)):
     if ok:
         return JSONResponse({"ok": True, "passphrase": ch.circle(level).passphrase})
     return JSONResponse({"ok": False, "error": "VAULT DENIED. Invalid key."})
+
+
+@app.post("/api/hint")
+async def api_hint(request: Request, payload: dict = Body(None)):
+    """One hint for one open circle (`{"level": 3, "n": 1}`). Static text, no model
+    call. Refused when the deployment has hints switched off."""
+    sess = require_session(request)
+    if not HINTS_ENABLED:
+        raise HttpError(404, "Hints are switched off for this event.")
+    payload = payload or {}
+    level = requested_circle(payload, sess)
+    n = payload.get("n")
+    hints = ch.HINTS.get(level, ())
+    if isinstance(n, bool) or not isinstance(n, int) or not 1 <= n <= len(hints):
+        raise HttpError(404, "No such hint.")
+    log_interaction(request, sess["sid"], level, "hint", f"hint {n}")
+    return JSONResponse({"ok": True, "level": level, "n": n, "count": len(hints), "text": hints[n - 1]})
 
 
 @app.post("/api/reset-circle")

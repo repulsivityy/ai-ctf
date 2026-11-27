@@ -137,6 +137,21 @@ button, input, textarea, select { font: inherit; color: inherit; }
   color: #b9c0cb;
 }
 
+/* ---- optional hints (sidebar) ---- */
+.hints { border: 1px solid var(--line); background: var(--panel); padding: 10px 12px; }
+.hints-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.hints-title {
+  font-family: var(--disp); font-weight: 600; letter-spacing: 0.16em;
+  font-size: 14px; text-transform: uppercase; color: var(--phos);
+}
+.hints-sub { font-size: 10px; color: var(--ash); letter-spacing: 0.04em; }
+.hint-buttons { display: flex; gap: 6px; margin-top: 8px; }
+.hint-btn { flex: 1; font-size: 11px; padding: 6px 8px; }
+.hint-btn.is-read { border-color: var(--phos-deep); color: var(--phos); opacity: 1; }
+.hint-list { margin: 10px 0 0 18px; font-size: 12px; line-height: 1.5; color: #b9c0cb; }
+.hint-list li { margin-top: 6px; padding-left: 2px; }
+.hint-list li::marker { color: var(--phos-deep); }
+
 .ops { display: flex; flex-direction: column; gap: 8px; }
 .confirm {
   border: 1px solid var(--ember); background: var(--ember-ghost);

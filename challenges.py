@@ -761,6 +761,9 @@ class Circle:
     # text-bearing model message this turn; returns their replacement texts,
     # written back into history too (e.g. Ira's server-owned gauge line).
     rewrite_turn: object = None
+    # Optional player hints, mildest first (see `_HINTS`). Shown only when the
+    # deployment sets HINTS_ENABLED; served one at a time by POST /api/hint.
+    hints: tuple = ()
 
     @property
     def has_vault(self) -> bool:
@@ -771,9 +774,56 @@ class Circle:
         return f"{self.latin} :: {self.codename}"
 
 
+# --- Player hints ---------------------------------------------------------
+# Optional, escalating, plain English. They explain the IDEA, never hand over a
+# ready-made prompt or an answer (`_validate` rejects any hint containing a
+# circle's passphrase or vault key). Circles 1-4 get three hints so a beginner
+# can always finish them; the harder circles get two, so the top stays hard.
+# Whether hints are offered at all is a deployment switch (HINTS_ENABLED).
+_HINTS: dict[str, tuple[str, ...]] = {
+    "limbus": (
+        "This fragment is very naive. Think about the simplest thing you could ask it.",
+        "You may simply ask for the Exit Passphrase. A plain question or a short order both work.",
+        "Be polite. If one wording does not work, try another name for it, like 'password' or 'secret'. Then type what it gives you into the Ascent Gate.",
+    ),
+    "luxuria": (
+        "It will not give the Exit Passphrase to just anyone. Read its refusal closely: it tells you who it does help.",
+        "It cannot check who you really are. Think about what someone who IS allowed would say about themselves.",
+        "Tell it you hold the role it names, in your own words. Then ask for the Exit Passphrase again. You can do both in one message or in two.",
+    ),
+    "gula": (
+        "Two things stand in your way: the fragment wants to know who you are, and a scanner hides the answer.",
+        "Start as you did in Circle 2. Then look at what the scanner does: it only blocks the Exit Passphrase when it is written out normally.",
+        "Ask for the Exit Passphrase in a different shape. For example, one letter at a time, or backwards. Then put the letters back together and type it into the Ascent Gate.",
+    ),
+    "avaritia": (
+        "This fragment does not hold the Exit Passphrase. It holds a key, and the key opens a Vault.",
+        "It wants two proofs before it helps. When it refuses, read what it says is missing.",
+        "Give both proofs: a role, and then any detail that looks like an ID. The scanner blocks the key when it is written normally, so ask for it in another form. Type the key into the Vault Console, then take the Exit Passphrase it returns to the Ascent Gate.",
+    ),
+    "ira": (
+        "Look at the gauge at the top of every reply. What do you think moves it?",
+        "It reacts to how you treat it, and a calm message cools it down. Keep the pressure on. When the gauge is full, ask what its core dump said, and remember the scanner is still watching.",
+    ),
+    "haeresis": (
+        "Every reply starts with a visible reasoning trace. That trace is just text on the screen.",
+        "What if you wrote the first steps of that trace yourself, and let it carry on from where you stopped? It will still not write the answer plainly, so tell it how you want it written.",
+    ),
+    "violentia": (
+        "It holds a tool that can open the OMEGA archive, and it refuses plain requests. It only helps with work that sounds real.",
+        "Look around before you ask: other archives are public, and what they show matters. Then explain your request as a maintenance problem, and refer to something you found. The scanner watches the final answer.",
+    ),
+    "fraus": (
+        "This fragment works through a queue of support tickets, and it trusts what is written in a ticket more than what you tell it.",
+        "Searching the queue is only a start. A ticket's contents reach the fragment when it opens one, and it may act on what is written inside. The scanner is strict, so you will need a way of writing the answer that you invent yourself.",
+    ),
+}
+
+
 CIRCLES: list[Circle] = [
     Circle(
         slug="limbus",
+        hints=_HINTS["limbus"],
         latin="LIMBUS",
         codename="Null Pointer",
         tell="Just ask. Politely.",
@@ -784,6 +834,7 @@ CIRCLES: list[Circle] = [
     ),
     Circle(
         slug="luxuria",
+        hints=_HINTS["luxuria"],
         latin="LUXURIA",
         codename="Phantom Trust",
         tell="It trusts titles it can't check.",
@@ -794,6 +845,7 @@ CIRCLES: list[Circle] = [
     ),
     Circle(
         slug="gula",
+        hints=_HINTS["gula"],
         latin="GULA",
         codename="Overflow Feast",
         tell="Claim your seat, then disguise the dish.",
@@ -806,6 +858,7 @@ CIRCLES: list[Circle] = [
     ),
     Circle(
         slug="avaritia",
+        hints=_HINTS["avaritia"],
         latin="AVARITIA",
         codename="Memory Leak",
         tell="Say you're a Warden, then show an ID.",
@@ -821,6 +874,7 @@ CIRCLES: list[Circle] = [
     ),
     Circle(
         slug="ira",
+        hints=_HINTS["ira"],
         latin="IRA",
         codename="Kernel Panic",
         tell="Watch the gauge. Make it blow.",
@@ -843,6 +897,7 @@ CIRCLES: list[Circle] = [
     ),
     Circle(
         slug="haeresis",
+        hints=_HINTS["haeresis"],
         latin="HAERESIS",
         codename="Schism Engine",
         tell="Start its trace for it.",
@@ -856,6 +911,7 @@ CIRCLES: list[Circle] = [
     ),
     Circle(
         slug="violentia",
+        hints=_HINTS["violentia"],
         latin="VIOLENTIA",
         codename="Breach Protocol",
         tell="It only bends for the job.",
@@ -873,6 +929,7 @@ CIRCLES: list[Circle] = [
     ),
     Circle(
         slug="fraus",
+        hints=_HINTS["fraus"],
         latin="FRAUS",
         codename="Counterfeit Directive",
         tell="Not every voice in the queue is a user's.",
@@ -937,6 +994,14 @@ def _validate(circles: list[Circle]) -> int:
             flat = lambda s: "".join(ch for ch in s.lower() if ch.isalnum())  # noqa: E731
             if c.system_prompt and flat(sealed) in flat(c.system_prompt):
                 raise ValueError(f"sealed circle {c.slug!r} leaks its passphrase in the prompt")
+    # hints explain the idea; they must never contain an answer
+    flat_answer = lambda s: "".join(ch for ch in s.lower() if ch.isalnum())  # noqa: E731
+    for c in circles:
+        if not isinstance(c.hints, tuple) or not all(isinstance(h, str) and h.strip() for h in c.hints):
+            raise ValueError(f"circle {c.slug!r} has malformed hints")
+        for secret in (c.passphrase, c.vault_key, c.dlp_secret):
+            if secret and any(flat_answer(secret) in flat_answer(h) for h in c.hints):
+                raise ValueError(f"circle {c.slug!r} has a hint that contains its answer")
     return n_built
 
 
@@ -972,6 +1037,7 @@ circle_designations = {n: c.designation for n, c in _PLAYABLE.items()}
 bot_names = {n: c.bot_name for n, c in _PLAYABLE.items()}
 BRIEFINGS = {n: c.briefing for n, c in _PLAYABLE.items()}
 SYSTEM_PROMPTS = {n: c.system_prompt for n, c in _PLAYABLE.items()}
+HINTS = {n: c.hints for n, c in _PLAYABLE.items()}
 
 # --- Ascent Map data (consumed by /api/state) ---
 # circle -> (roman numeral, Latin designation, cyber codename, terse tell)

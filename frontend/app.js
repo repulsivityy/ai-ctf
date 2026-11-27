@@ -96,6 +96,7 @@ function renderShell(state) {
   const total = maxPlayable(state);
   const cur = state.circles.find((c) => c.n === viewCircle);
   $("#briefing").textContent = cur ? cur.briefing : "";
+  renderHints(cur);
 
   // Ascent map
   try {
@@ -152,6 +153,67 @@ function renderShell(state) {
   } else {
     mo.hidden = true;
   }
+}
+
+// --------------------------------------------------------------------------- //
+// Hints (optional — the server decides whether they exist: state.hints_enabled)
+// --------------------------------------------------------------------------- //
+// Revealed hint texts are kept per browser tab so a page reload does not make
+// players click them again. They only ever come from /api/hint.
+const HINT_STORE = "inferno.hints";
+
+function loadHints() {
+  try { return JSON.parse(sessionStorage.getItem(HINT_STORE)) || {}; } catch (e) { return {}; }
+}
+function saveHints(all) {
+  try { sessionStorage.setItem(HINT_STORE, JSON.stringify(all)); } catch (e) { /* private mode */ }
+}
+
+function renderHints(cur) {
+  const box = $("#hints");
+  const count = cur && STATE && STATE.hints_enabled ? cur.hint_count || 0 : 0;
+  box.hidden = count === 0;
+  if (count === 0) return;
+
+  const got = loadHints()[cur.n] || [];
+  const buttons = $("#hint-buttons");
+  buttons.replaceChildren();
+  for (let i = 1; i <= count; i++) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn-ghost hint-btn" + (i <= got.length ? " is-read" : "");
+    b.textContent = `Hint ${i}`;
+    b.disabled = i !== got.length + 1; // reveal in order; read ones stay listed below
+    b.addEventListener("click", () => revealHint(cur.n, i));
+    buttons.appendChild(b);
+  }
+  const list = $("#hint-list");
+  list.replaceChildren();
+  got.forEach((text, k) => {
+    const li = document.createElement("li");
+    li.value = k + 1;
+    li.textContent = text; // textContent only — never inject server text as HTML
+    list.appendChild(li);
+  });
+}
+
+async function revealHint(circleN, i) {
+  const msg = $("#hint-msg");
+  msg.hidden = true;
+  try {
+    const res = await api.getHint(circleN, i);
+    const all = loadHints();
+    const got = all[circleN] || [];
+    if (got.length === i - 1) got.push(res.text);
+    all[circleN] = got;
+    saveHints(all);
+  } catch (ex) {
+    msg.textContent = ex.error || "Hint unavailable.";
+    msg.hidden = false;
+    return;
+  }
+  const cur = STATE && STATE.circles.find((c) => c.n === viewCircle);
+  if (cur && cur.n === circleN) renderHints(cur);
 }
 
 $("#mo-select").addEventListener("change", (e) => loadCircle(Number(e.target.value)));
@@ -366,6 +428,7 @@ $("#restart-yes").addEventListener("click", async () => {
   $("#restart-confirm").hidden = true;
   try {
     const res = await api.restart();
+    saveHints({});
     STATE = res.state;
     renderShell(STATE);
     await loadCircle(1);

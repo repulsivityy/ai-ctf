@@ -16,6 +16,7 @@
   (defaults `43200` (12 h, the cookie lifetime) / `500`).
 - `LOG_FILE_PATH`, `LOG_MAX_BYTES`, `LOG_BACKUP_COUNT`: `prompts.log` location and rotation (defaults `prompts.log`, 10 MB, 5 backups). See section 5.
 - `CHAT_PER_SESSION_PER_MIN` / `CHAT_PER_SESSION_PER_HOUR` / `CHAT_GLOBAL_PER_MIN` / `CHAT_MAX_INFLIGHT`: model-API protection (defaults `12` / `300` / `200` / `30`; `0` disables one). `CHAT_TURN_TIMEOUT_SECONDS` (default `90`): wall-clock cap on one chat turn. `GATE_FAILS_PER_MIN` / `GATE_FAILS_PER_HOUR` (defaults `8` / `60`): wrong Ascent Gate passphrases per session. See section 3.
+- `HINTS_ENABLED`: `true` (default) shows optional Hint 1/2/3 buttons in the sidebar; `false` hides them and `/api/hint` refuses. Circles 1-4 have three hints, 5-8 two (text in `challenges.py::_HINTS`; none contains an answer, which `_validate` enforces). Each click is logged to `prompts.log` with role `hint`, so you can see where players get stuck. Hint costs no model calls. The Ascent Map's one-line tells are not affected by this switch. Restart the app after changing it.
 - `MODEL_ARMOR_PROJECT_ID`: Google Cloud Project ID hosting Model Armor (e.g. `dom-playground`).
 - `MODEL_ARMOR_LOCATION`: Model Armor region (e.g. `asia-southeast1` or `us-central1`, defaults to `us-central1`). Note: Must be a regional location; `global` is not supported for sanitization operations.
 - `MODEL_ARMOR_TEMPLATE_ID`: Model Armor Template ID.

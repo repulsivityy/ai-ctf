@@ -37,6 +37,17 @@
 
       <div id="briefing" class="briefing"></div>
 
+      <!-- Optional hints: shown only when the server has HINTS_ENABLED -->
+      <div id="hints" class="hints" hidden>
+        <div class="hints-head">
+          <span class="hints-title">Hints</span>
+          <span class="hints-sub">optional · one at a time</span>
+        </div>
+        <div id="hint-buttons" class="hint-buttons"></div>
+        <ol id="hint-list" class="hint-list"></ol>
+        <p id="hint-msg" class="gate-msg err" role="status" hidden></p>
+      </div>
+
       <div id="ascent-map"></div>
 
       <div class="ops">
