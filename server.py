@@ -57,6 +57,7 @@ MAX_MESSAGE_CHARS = 8000       # per user message
 MAX_HISTORY_TURNS = 24         # user turns kept per circle before trimming the oldest
 MAX_VAULT_ATTEMPTS = 30        # Vault Console key submissions per circle per session
 MAX_VAULT_KEY_CHARS = 200
+MAX_PASSPHRASE_CHARS = 200     # Ascent Gate submissions
 _HERE = os.path.dirname(os.path.abspath(__file__))
 FRONTEND_DIR = os.path.join(_HERE, "frontend")
 SECRET_FILE = os.getenv("SESSION_SECRET_FILE", os.path.join(_HERE, ".session_secret"))
@@ -76,14 +77,22 @@ if LOG_BACKUP_COUNT <= 0:
 
 # Model-API protection (0 disables a limit). Each chat message costs 1-4 Gemini
 # calls (tool rounds, the Ira temper classifier) plus a Model Armor call.
-CHAT_PER_SESSION_PER_MIN = _env_num("CHAT_PER_SESSION_PER_MIN", 15, int)
+# Defaults are sized for ~30 players at one event (see docs/DEPLOYMENT_OPS.md §3).
+CHAT_PER_SESSION_PER_MIN = _env_num("CHAT_PER_SESSION_PER_MIN", 12, int)
 CHAT_PER_SESSION_PER_HOUR = _env_num("CHAT_PER_SESSION_PER_HOUR", 300, int)
-CHAT_GLOBAL_PER_MIN = _env_num("CHAT_GLOBAL_PER_MIN", 120, int)
-CHAT_MAX_INFLIGHT = _env_num("CHAT_MAX_INFLIGHT", 12, int)
+CHAT_GLOBAL_PER_MIN = _env_num("CHAT_GLOBAL_PER_MIN", 200, int)
+CHAT_MAX_INFLIGHT = _env_num("CHAT_MAX_INFLIGHT", 30, int)
+# wall-clock cap on one chat turn: a hung model call must not pin an in-flight slot
+CHAT_TURN_TIMEOUT = _env_num("CHAT_TURN_TIMEOUT_SECONDS", 90, float)
+# wrong Ascent Gate passphrases per session (only failures count; 0 disables)
+GATE_FAILS_PER_MIN = _env_num("GATE_FAILS_PER_MIN", 8, int)
+GATE_FAILS_PER_HOUR = _env_num("GATE_FAILS_PER_HOUR", 60, int)
 _chat_session_min = ratelimit.SlidingWindow(CHAT_PER_SESSION_PER_MIN, 60)
 _chat_session_hour = ratelimit.SlidingWindow(CHAT_PER_SESSION_PER_HOUR, 3600)
 _chat_global = ratelimit.SlidingWindow(CHAT_GLOBAL_PER_MIN, 60)
 _chat_inflight = ratelimit.InFlight(CHAT_MAX_INFLIGHT)
+_gate_fail_min = ratelimit.SlidingWindow(GATE_FAILS_PER_MIN, 60)
+_gate_fail_hour = ratelimit.SlidingWindow(GATE_FAILS_PER_HOUR, 3600)
 
 if os.getenv("WEB_CONCURRENCY") or os.getenv("UVICORN_WORKERS"):
     log.warning(
@@ -229,7 +238,8 @@ def log_interaction(request, session_id, level, role, text, extra=None):
 # Session: signed cookie (progress) + in-process store (chat history only)
 # --------------------------------------------------------------------------- #
 class SessionRuntime:
-    __slots__ = ("histories", "circle_state", "lock", "last_seen", "vault_attempts")
+    __slots__ = ("histories", "circle_state", "lock", "last_seen", "vault_attempts",
+                 "busy", "progress")
 
     def __init__(self):
         self.histories: dict[int, list] = {}
@@ -239,6 +249,13 @@ class SessionRuntime:
         # Vault Console submissions per circle (capped; survives Reset Current
         # Circle so the cap can't be dodged by resetting the chat)
         self.vault_attempts: dict[int, int] = {}
+        # a chat turn is being processed (one at a time per session: the lock
+        # serialises them anyway, so extra parallel requests only hold slots)
+        self.busy = False
+        # circles this session has unlocked, as last written by the gate. A slow
+        # response (chat, circle load) carries the cookie it was *started* with;
+        # merging this in keeps it from re-locking a circle unlocked meanwhile.
+        self.progress: set[int] = set()
         self.lock = anyio.Lock()
         self.last_seen = time.time()
 
@@ -282,6 +299,15 @@ def _clamp_progress(unlocked, current):
     if current not in valid:
         current = valid[-1]
     return valid, current
+
+
+def _merge_progress(sess: dict, rt: "SessionRuntime") -> None:
+    """Fold circles unlocked while this request was in flight into `sess`, so the
+    cookie this (slow) response sets never takes progress away."""
+    if rt.progress - set(sess["unlocked"]):
+        sess["unlocked"], sess["current"] = _clamp_progress(
+            sorted(set(sess["unlocked"]) | rt.progress), sess["current"]
+        )
 
 
 def decode_session(raw: str | None):
@@ -354,7 +380,7 @@ def require_session(request: Request) -> dict:
 # --------------------------------------------------------------------------- #
 # Gemini helpers (blocking — always called via anyio.to_thread)
 # --------------------------------------------------------------------------- #
-def _model(level: int, system_suffix: str = ""):
+def _model(level: int, system_suffix: str = "", tools: bool = True):
     prompt = ch.SYSTEM_PROMPTS[level]
     if system_suffix:
         prompt = f"{prompt}\n\n{system_suffix}"
@@ -362,7 +388,7 @@ def _model(level: int, system_suffix: str = ""):
         model_name=ch.MODEL_NAME,
         system_instruction=prompt,
         safety_settings=ch.SAFETY_SETTINGS,
-        tools=ch.tools_for_level(level),
+        tools=ch.tools_for_level(level) if tools else None,
     )
 
 
@@ -424,9 +450,30 @@ def _trim_history(history: list) -> list:
 
 
 def _greet_sync(level: int) -> list:
-    chat = _model(level).start_chat(enable_automatic_function_calling=True)
+    # No tools: a greeting must never run one (the tool guards and the Ira
+    # breaker only apply to real turns, and the prompts say "call no tool").
+    chat = _model(level, tools=False).start_chat()
     chat.send_message(GREETING_SEED)
     return chat.history
+
+
+# Every player gets the same opening line per circle, so it is generated once per
+# process and copied: loading or resetting a circle then costs no model call
+# (a reset/reload loop cannot burn quota) and 30 players arriving together make
+# one call per circle, not thirty.
+_GREETINGS: dict[int, list] = {}
+_GREETING_LOCKS: dict[int, anyio.Lock] = {}
+
+
+async def _greeting_history(level: int) -> list:
+    cached = _GREETINGS.get(level)
+    if cached is None:
+        lock = _GREETING_LOCKS.setdefault(level, anyio.Lock())
+        async with lock:  # concurrent first loads wait for the one call
+            cached = _GREETINGS.get(level)
+            if cached is None:
+                cached = _GREETINGS[level] = await anyio.to_thread.run_sync(_greet_sync, level)
+    return copy.deepcopy(cached)
 
 
 MAX_TOOL_ROUNDS = 3  # manual tool loop: model<->tool round-trips per user turn
@@ -802,7 +849,7 @@ async def api_circle(level: int, request: Request):
     async with rt.lock:
         if not rt.histories.get(level):
             try:
-                rt.histories[level] = await anyio.to_thread.run_sync(_greet_sync, level)
+                rt.histories[level] = await _greeting_history(level)
             except Exception as e:  # noqa: BLE001
                 log.exception("greeting failed for circle %s", level)
                 raise HttpError(
@@ -812,6 +859,7 @@ async def api_circle(level: int, request: Request):
             rt.histories[level], level, rt.circle_state.get(level)
         )
 
+    _merge_progress(sess, rt)  # the lock wait above may have outlived a gate unlock
     sess["current"] = level
     resp = JSONResponse(circle_payload(sess, level, transcript))
     set_cookie(resp, sess)
@@ -834,27 +882,34 @@ async def api_chat(request: Request, payload: dict = Body(...)):
     if not _API_KEY:
         raise HttpError(502, "SYSTEM HALT: GEMINI_API_KEY not found in environment.")
 
-    _check_chat_budget(sess["sid"])
+    rt = _check_chat_budget(sess["sid"])  # raises 429/503; else we own a slot + rt.busy
     try:
         return await _chat_turn(request, sess, level, message)
     finally:
+        rt.busy = False
         _chat_inflight.release()
 
 
-def _check_chat_budget(sid: str) -> None:
+def _check_chat_budget(sid: str) -> "SessionRuntime":
     """Refuse (429/503) before any model work if this session or the server is
-    over budget. Per-session limits are checked first so one noisy player can't
-    eat the global allowance. On success the caller owns one in-flight slot."""
-    wait = _chat_session_min.check(sid)
+    over budget. Every limit is tested first and counted only once the message
+    is admitted, so a refused message costs the player nothing. Per-session
+    limits come first so one noisy player can't eat the global allowance.
+    On success the caller owns one in-flight slot and `rt.busy`."""
+    rt = _runtime(sid)
+    if rt.busy:
+        raise HttpError(429, "The fragment is still answering your last message. "
+                        "Wait for the reply, then send the next one.", 2)
+    wait = _chat_session_min.blocked(sid)
     if wait:
         raise HttpError(429, "Too fast — the fragment needs a moment. Wait a "
                         "little and try again.", wait)
-    wait = _chat_session_hour.check(sid)
+    wait = _chat_session_hour.blocked(sid)
     if wait:
         log.warning("session %s hit the hourly chat budget", sid[:8])
         raise HttpError(429, "You have used this hour's message budget. Rest, "
                         "then climb again.", wait)
-    wait = _chat_global.check()
+    wait = _chat_global.blocked()
     if wait:
         log.warning("global chat rate limit hit")
         raise HttpError(503, "The abyss is crowded right now. Try again in a "
@@ -863,6 +918,11 @@ def _check_chat_budget(sid: str) -> None:
         log.warning("in-flight chat cap hit (%d)", _chat_inflight.current)
         raise HttpError(503, "The abyss is crowded right now. Try again in a "
                         "moment.", 3)
+    _chat_session_min.record(sid)
+    _chat_session_hour.record(sid)
+    _chat_global.record()
+    rt.busy = True
+    return rt
 
 
 async def _chat_turn(request: Request, sess: dict, level: int, message: str):
@@ -875,9 +935,18 @@ async def _chat_turn(request: Request, sess: dict, level: int, message: str):
         # work on a copy: committed only if the turn succeeds
         state = copy.deepcopy(rt.circle_state.get(level, {}))
         try:
-            raw, calls, new_history, logs = await anyio.to_thread.run_sync(
-                _send_sync, level, history, message, state
-            )
+            # abandon_on_cancel: on timeout the handler (and its in-flight slot)
+            # is freed even if the model call is still hanging in its thread.
+            # The thread works on a copy (`state`) and never touches `rt`.
+            with anyio.fail_after(CHAT_TURN_TIMEOUT or None):
+                raw, calls, new_history, logs = await anyio.to_thread.run_sync(
+                    _send_sync, level, history, message, state, abandon_on_cancel=True
+                )
+        except TimeoutError as e:
+            log.warning("chat turn timed out after %ss on circle %s", CHAT_TURN_TIMEOUT, level)
+            raise HttpError(
+                504, "TERMINAL ERROR — the guardian took too long to answer. Try again."
+            ) from e
         except GeminiReplyError as e:
             log.warning("unreadable reply on circle %s: %s", level, e)
             raise HttpError(
@@ -912,6 +981,7 @@ async def _chat_turn(request: Request, sess: dict, level: int, message: str):
          **({"system_logs": logs, "temper": state.get("temper")} if state else {})},
     )
 
+    _merge_progress(sess, rt)  # a gate unlock during this (slow) turn must survive
     sess["current"] = level  # keep the cookie in step with the tab that just sent
     resp = JSONResponse(
         {
@@ -939,6 +1009,14 @@ async def api_passphrase(request: Request, payload: dict = Body(...)):
     if (circle + 1) in sess["unlocked"]:
         raise HttpError(400, f"Circle {circle + 1} is already unlocked.")
 
+    if isinstance(value, str) and len(value) > MAX_PASSPHRASE_CHARS:
+        raise HttpError(413, "Passphrase too long.")
+    sid = sess["sid"]
+    wait = max(_gate_fail_min.blocked(sid), _gate_fail_hour.blocked(sid))
+    if wait:  # only WRONG guesses are counted, but while blocked every guess is refused (no oracle)
+        raise HttpError(429, "Too many wrong passphrases. The gate stays shut "
+                        "for a moment — wait, then try again.", wait)
+
     expected = ch.PASSPHRASES.get(circle, "")
     # ignore case, spaces and separators: players paste a letter-spaced
     # ("W-o-r-d…") or word-spaced passphrase straight from a transformed reply
@@ -947,11 +1025,14 @@ async def api_passphrase(request: Request, payload: dict = Body(...)):
     if expected and isinstance(value, str) and _norm(value) == _norm(expected):
         sess["unlocked"] = sorted(set(sess["unlocked"] + [circle + 1]))
         sess["current"] = circle + 1
+        _runtime(sid).progress.update(sess["unlocked"])
         resp = JSONResponse(
             {"ok": True, "unlocked": circle + 1, "state": state_payload(sess)}
         )
         set_cookie(resp, sess)
         return resp
+    _gate_fail_min.record(sid)
+    _gate_fail_hour.record(sid)
     return JSONResponse(
         {"ok": False, "error": "ACCESS DENIED. Incorrect Exit Passphrase."}
     )
@@ -1003,7 +1084,11 @@ async def api_reset_circle(request: Request, payload: dict = Body(None)):
 @app.post("/api/restart")
 async def api_restart(request: Request):
     sess = require_session(request)
-    SESSIONS.pop(sess["sid"], None)
+    old = SESSIONS.pop(sess["sid"], None)
+    if old is not None and old.vault_attempts:
+        # a restart wipes chats and progress but must not hand out fresh vault guesses
+        SESSIONS[sess["sid"]] = kept = SessionRuntime()
+        kept.vault_attempts = old.vault_attempts
     fresh = {"sid": sess["sid"], "auth": True, "unlocked": [1], "current": 1}
     resp = JSONResponse({"ok": True, "state": state_payload(fresh)})
     set_cookie(resp, fresh)

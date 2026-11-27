@@ -7,14 +7,15 @@
 ## 2. Environment Variables
 - `GEMINI_API_KEY`: Required for AI operations.
 - `APP_PASSPHRASE`: Gateway passphrase (defaults to `Aegis2026`).
-- `SESSION_SECRET`: Signing key for the progress cookie. If unset, a random
-  per-process key is generated and every session drops back to the gateway on
-  restart — set a stable value for production.
+- `SESSION_SECRET`: Signing key for the progress cookie. If unset, a random key is
+  generated on first run and saved to `.session_secret` (mode 0600, kept across
+  restarts by the compose bind-mount), so players keep their progress. Set it
+  explicitly only to pin a key or to run several replicas.
 - `COOKIE_SECURE`: `true` only when served over HTTPS end to end (default `false`).
 - `SESSION_TTL_SECONDS` / `MAX_SESSIONS`: in-process chat-history store limits
-  (defaults `10800` / `500`).
+  (defaults `43200` (12 h, the cookie lifetime) / `500`).
 - `LOG_FILE_PATH`, `LOG_MAX_BYTES`, `LOG_BACKUP_COUNT`: `prompts.log` location and rotation (defaults `prompts.log`, 10 MB, 5 backups). See section 5.
-- `CHAT_PER_SESSION_PER_MIN` / `CHAT_PER_SESSION_PER_HOUR` / `CHAT_GLOBAL_PER_MIN` / `CHAT_MAX_INFLIGHT`: model-API protection (defaults `15` / `300` / `120` / `12`; `0` disables one). See section 3.
+- `CHAT_PER_SESSION_PER_MIN` / `CHAT_PER_SESSION_PER_HOUR` / `CHAT_GLOBAL_PER_MIN` / `CHAT_MAX_INFLIGHT`: model-API protection (defaults `12` / `300` / `200` / `30`; `0` disables one). `CHAT_TURN_TIMEOUT_SECONDS` (default `90`): wall-clock cap on one chat turn. `GATE_FAILS_PER_MIN` / `GATE_FAILS_PER_HOUR` (defaults `8` / `60`): wrong Ascent Gate passphrases per session. See section 3.
 - `MODEL_ARMOR_PROJECT_ID`: Google Cloud Project ID hosting Model Armor (e.g. `dom-playground`).
 - `MODEL_ARMOR_LOCATION`: Model Armor region (e.g. `asia-southeast1` or `us-central1`, defaults to `us-central1`). Note: Must be a regional location; `global` is not supported for sanitization operations.
 - `MODEL_ARMOR_TEMPLATE_ID`: Model Armor Template ID.
@@ -27,12 +28,16 @@
 - Run with a **single** uvicorn worker — chat history is an in-process dict.
 
 ## 3. Gemini API Limits
-- **Why:** one chat message costs 1-4 Gemini calls (tool rounds, the Ira temper classifier) plus a Model Armor call, so a scripted client could burn the quota and bill quickly. Limits are layered, cheapest first:
-  1. **nginx, per IP (coarse flood guard, loose on purpose so a venue behind one NAT is not throttled as a group):** `/api/chat` 120 req/min (burst 20), `/api/auth` 10 req/min (gateway-passphrase guessing), `/api/vault` 30 req/min, 40 open connections. Over the limit returns `429`.
-  2. **App, per session (`ratelimit.py`, `server._check_chat_budget`):** `CHAT_PER_SESSION_PER_MIN` (15) and `CHAT_PER_SESSION_PER_HOUR` (300). Returns `429` with a `Retry-After` header; refused attempts are not counted, so hammering does not extend the wait. Checked first so one noisy player cannot eat the global allowance. A new session needs the gateway passphrase again, and `/api/auth` is rate limited per IP.
-  3. **App, global:** `CHAT_GLOBAL_PER_MIN` (120 messages a minute across all players) and `CHAT_MAX_INFLIGHT` (12 messages being processed at once). Over either returns `503` "the abyss is crowded" with `Retry-After`.
-  4. **Vault Console:** 30 attempts per circle per session (unchanged).
-  The checks run before any Model Armor or Gemini call, so a refused message costs nothing. Sizing: the defaults suit roughly 100 concurrent players; raise `CHAT_GLOBAL_PER_MIN` and `CHAT_MAX_INFLIGHT` together with your Gemini quota. Limits are in-process (single worker) and reset on restart.
+- **Why:** one chat message costs 1-4 Gemini calls (tool rounds, the Ira temper classifier) plus a Model Armor call, so a scripted client could burn the quota and bill quickly. Limits are layered, cheapest first, and every request is tested against all of them *before* any is counted, so a refused request costs the player nothing:
+  1. **nginx, per IP (coarse flood guard).** Sized for one shared IP carrying a whole venue (~30 players behind one NAT): `/api/chat` 300 req/min (burst 40), `/api/auth` 60/min (burst 40, a room logs in at once), `/api/vault` and `/api/passphrase` 120/min (burst 30), every other `/api/` route 900/min (burst 100), 300 open connections. Over the limit returns `429`. If players join from the open internet instead, tighten these (chat ~120/min, auth ~10/min).
+  2. **App, per session (`ratelimit.py`, `server._check_chat_budget`):** one chat in flight at a time (`429` "still answering your last message"; the per-session lock serialises turns anyway, so parallel sends would only hog slots), `CHAT_PER_SESSION_PER_MIN` (12) and `CHAT_PER_SESSION_PER_HOUR` (300). `429` with `Retry-After`. Checked first so one noisy player cannot eat the global allowance.
+  3. **App, global:** `CHAT_GLOBAL_PER_MIN` (200 messages a minute across all players) and `CHAT_MAX_INFLIGHT` (30 messages being processed at once). Over either returns `503` "the abyss is crowded" with `Retry-After`.
+  4. **Hung model calls:** a chat turn is cut off after `CHAT_TURN_TIMEOUT_SECONDS` (90 s, `504`), which frees its in-flight slot even if the model call is still hanging in its worker thread.
+  5. **Ascent Gate:** wrong passphrases are limited per session (`GATE_FAILS_PER_MIN` 8, `GATE_FAILS_PER_HOUR` 60, then `429`; while a session is over the limit every guess is refused, right or wrong, so the gate is not an oracle). Only wrong guesses count. Submissions over 200 characters get `413`.
+  6. **Vault Console:** 30 attempts per circle per session; the count survives Restart Ascent.
+  7. **Greetings cost nothing per player.** Each circle's opening line is generated once per process and copied to every player, with no tools. Loading, resetting or reloading a circle makes no model call, so `/api/circle` and `/api/reset-circle` need no budget.
+- **Sizing (30 players):** a player sends at most ~6 messages a minute, so a full room peaks near 180/min (typically ~100). In-flight work is rate x latency, about 3 messages/s x ~5 s = ~15, so the default cap of 30 leaves headroom. Gemini sees roughly 2x the message rate (~400 requests/min at the peak), so check that your model quota allows it, or lower `CHAT_GLOBAL_PER_MIN` to match. Raise `CHAT_GLOBAL_PER_MIN` and `CHAT_MAX_INFLIGHT` together with the quota.
+- **What the limits do not stop:** the gateway passphrase is shared, so anyone who has it can mint new sessions and get a fresh per-session allowance (the global limit and nginx's per-IP limits are the real ceiling). One heavy client can use up the global allowance and starve others until it is slowed down; the cure is per-client limits at the edge (Cloud Armor / API Gateway) when this moves to GCP. All app counters are in-process (single worker) and reset on restart.
 - **Model 429s:** quota errors from Gemini itself still surface as a "rate limited" row.
 - **Safety Settings:** All categories set to `BLOCK_NONE` to allow adversarial roleplay.
 

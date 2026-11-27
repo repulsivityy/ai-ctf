@@ -45,6 +45,16 @@ def test_idle_keys_are_pruned():
     assert len(w._hits) <= 6
 
 
+def test_blocked_peeks_and_record_counts():
+    w = ratelimit.SlidingWindow(2, 60)
+    assert w.blocked("a", now=0) == 0 and w.blocked("a", now=0) == 0   # peeking never counts
+    w.record("a", now=0); w.record("a", now=1)
+    assert w.blocked("a", now=2) == 58
+    assert w.blocked("b", now=2) == 0
+    assert w.blocked("a", now=61) == 0 and w.check("a", now=61) == 0   # check = blocked + record
+    assert ratelimit.SlidingWindow(0, 60).blocked("a") == 0
+
+
 def test_inflight_cap():
     f = ratelimit.InFlight(2)
     assert f.acquire() and f.acquire() and not f.acquire()
